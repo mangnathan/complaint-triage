@@ -53,9 +53,9 @@ docs/
   vX.Y-<étape>/   source LaTeX, figures et données agrégées de chaque rapport
   adr/            notes de décision technique
   latex/          mise en page commune des rapports
-scripts/          scripts exécutables (faisabilité, génération des rapports)
+scripts/          scripts exécutables (faisabilité, exploration, génération des rapports)
 src/complaint_triage/
-  data/           collecte, contrôle et assemblage des données du CFPB
+  data/           collecte, contrôle, assemblage et préparation des données du CFPB
 tests/            tests automatiques (pytest)
 ```
 
@@ -70,6 +70,7 @@ uv sync
 uv run python -m complaint_triage.data                  # écrit data/interim/complaints.parquet
 uv run python -m complaint_triage.data --refresh-export # même chose avec l'export du jour
 uv run pytest                                           # tests, sans réseau
+uv run python scripts/analysis/explore_dataset.py       # analyses, tableaux et figures de l'exploration
 ```
 
 Reproduire l'étude de faisabilité et les rapports :
