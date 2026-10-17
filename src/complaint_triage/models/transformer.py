@@ -6,6 +6,7 @@ sans GPU, et déjà installés sur Colab. Ils sont importés seulement au moment
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from typing import Any
 
@@ -67,6 +68,9 @@ def fine_tune_and_score(
 
     tokenizer = AutoTokenizer.from_pretrained(config.model_name)
     model = AutoModelForSequenceClassification.from_pretrained(config.model_name, num_labels=2)
+    # Transformers 5 ne connaît plus warmup_ratio : le nombre de pas d'échauffement est calculé
+    # ici et passé avec warmup_steps, accepté par toutes les versions.
+    total_steps = math.ceil(len(fit) / config.batch_size) * config.epochs
     arguments = TrainingArguments(
         output_dir=output_dir,
         per_device_train_batch_size=config.batch_size,
@@ -74,7 +78,7 @@ def fine_tune_and_score(
         learning_rate=config.learning_rate,
         num_train_epochs=config.epochs,
         weight_decay=config.weight_decay,
-        warmup_ratio=config.warmup_ratio,
+        warmup_steps=int(config.warmup_ratio * total_steps),
         eval_strategy="steps",
         eval_steps=config.eval_every_steps,
         save_strategy="steps",
