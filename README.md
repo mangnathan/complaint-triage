@@ -8,7 +8,31 @@ Un service réclamations traite en général ses dossiers dans l'ordre d'arrivé
 
 Le projet est pensé pour fonctionner en continu, pas comme une étude ponctuelle. Depuis le 14 août 2026, le CFPB ne publie plus le texte des réclamations. Le modèle de production doit donc se passer du texte, attendre que les issues soient connues avant d'apprendre, et être évalué en permanence sur les décisions réelles des banques.
 
-Statut actuel : v0.0, cadrage terminé. Aucun modèle n'a encore été entraîné, mais les critères de succès sont déjà fixés.
+Statut actuel : v0.1 en cours, étape 6 sur 8. Les données sont collectées et explorées, le cadre d'évaluation est en place, un premier modèle sans texte est mesuré, et le modèle de texte est en cours d'évaluation.
+
+## Où en est le projet
+
+| v0.1, étape | Contenu | État |
+|---|---|---|
+| 1 | Collecte et contrôle des données du CFPB | terminé |
+| 2 | Intégration continue (lint, typage, tests) | terminé |
+| 3 | Exploration et préparation des données | terminé |
+| 4 | Cadre d'évaluation et règle de référence | terminé |
+| 5 | Modèle XGBoost sans texte | terminé, conclusion révisée à l'étape 6 |
+| 6 | Modèle de texte et correction de la métrique | en cours |
+| 7 | Équité par sous-groupe et calibration | à venir |
+| 8 | Décision sur la période de test, rapport v0.1 | à venir |
+
+Résultats provisoires sur la période de validation (juillet à décembre 2025), dans la file de chaque établissement :
+
+| Classement | Capture@10 % |
+|---|---|
+| Hasard | 10,0 % |
+| Règle H0 avec les taux du marché | 17,7 % |
+| Règle H0 avec les taux propres à chaque banque | 19,4 % |
+| Meilleur XGBoost, sans texte | 19,4 % |
+
+Sans le texte des réclamations, aucun modèle ne fait mieux que la règle des taux propres à chaque banque. La mesure de ce qu'apporte le texte est en cours. La décision finale sera prise une seule fois, sur la période de test.
 
 ## Quelques chiffres
 
@@ -23,7 +47,11 @@ Mesures du 17 octobre 2026 sur les cartes de crédit et les comptes courants et 
 
 ## Mesure du succès
 
-L'indicateur principal est la Capture@10 % : la part des réclamations indemnisées que l'on retrouve dans les 10 % de la file traités en priorité. Un tri au hasard donne 10 %. Le modèle doit faire mieux qu'une règle métier simple (le taux historique par produit et par motif), avec une marge décidée avant toute modélisation. S'il n'y arrive pas, c'est la règle simple qui sera utilisée, et le résultat sera documenté. Le détail figure dans le [rapport de cadrage](docs/pdf/complaint-triage_v0.0_Rapport-de-cadrage.pdf), section 7.
+L'indicateur principal est la Capture@10 % : chaque semaine, chaque banque traite d'abord 10 % de sa propre file de réclamations, et on mesure la part des réclamations finalement indemnisées qui s'y trouvent. Un tri au hasard donne 10 %.
+
+Le modèle doit faire au moins 5 points de mieux qu'une règle métier simple : les taux d'indemnisation historiques de la banque par produit, motif et sous-motif, rapprochés de ceux du marché quand elle a peu de réclamations dans une catégorie. Cette marge a été fixée avant toute modélisation. Si aucun modèle ne l'atteint, c'est la règle simple qui sera utilisée, et le résultat sera documenté. Le détail figure dans le [rapport de cadrage](docs/pdf/complaint-triage_v0.0_Rapport-de-cadrage.pdf), section 7.
+
+La première version de la métrique classait toutes les banques ensemble. Elle avantageait les modèles capables de deviner la banque, ce qui ne sert à rien à un établissement qui trie sa propre file. Elle a été corrigée pendant la v0.1 pour coller à la définition du client écrite au cadrage, sans changer la marge exigée. L'explication complète figurera dans le rapport v0.1.
 
 ## Feuille de route
 
@@ -44,6 +72,7 @@ Chaque version est livrée avec un rapport en PDF (source LaTeX dans le dépôt)
 | Version | Rapport | Décisions |
 |---|---|---|
 | v0.0 | [Rapport de cadrage](docs/pdf/complaint-triage_v0.0_Rapport-de-cadrage.pdf) ([source](docs/v0.0-cadrage/v0.0-rapport-de-cadrage.tex)) | [ADR 0001](docs/adr/0001-cadrage.md) |
+| v0.1 | Rapport en cours de rédaction ([source](docs/v0.1-donnees-et-scoring/v0.1-rapport-donnees-et-scoring.tex)), PDF publié à la fin de la version | à venir |
 
 ## Organisation du dépôt
 
@@ -53,11 +82,12 @@ docs/
   vX.Y-<étape>/   source LaTeX, figures et données agrégées de chaque rapport
   adr/            notes de décision technique
   latex/          mise en page commune des rapports
-scripts/          scripts exécutables (faisabilité, exploration, génération des rapports)
+notebooks/        lanceur Colab pour l'entraînement sur GPU (sans logique propre)
+scripts/          scripts exécutables (faisabilité, exploration, évaluation, expériences, rapports)
 src/complaint_triage/
   data/           collecte, contrôle, assemblage et préparation des données du CFPB
-  evaluation/     découpage dans le temps, Capture@10 %, intervalles de confiance
-  models/         règle de référence H0, variables et modèle XGBoost
+  evaluation/     découpage dans le temps, Capture@10 % par file, intervalles de confiance
+  models/         règles de référence, XGBoost, référence textuelle TF-IDF, modèle de langage
 tests/            tests automatiques (pytest)
 ```
 
@@ -75,8 +105,17 @@ uv run pytest                                           # tests, sans réseau
 uv run python scripts/analysis/explore_dataset.py       # analyses, tableaux et figures de l'exploration
 uv run python scripts/evaluation/evaluate_references.py # classements de référence sur la validation
 uv run python scripts/experiments/train_xgboost.py      # variantes XGBoost, tracées dans MLflow
+uv run python scripts/evaluation/evaluate_by_bank.py    # réévaluation dans la file de chaque banque
 uv run mlflow ui --backend-store-uri sqlite:///mlflow.db # consulter les expériences
 ```
+
+Le modèle de langage s'entraîne sur GPU, avec Google Colab :
+
+```bash
+uv run python scripts/experiments/export_text_for_colab.py  # récits sans la période de test
+```
+
+Déposer `data/processed/recits-colab.parquet` dans le dossier `complaint-triage` de Google Drive, puis lancer [le notebook sur Colab](https://colab.research.google.com/github/mangnathan/complaint-triage/blob/main/notebooks/colab_fine_tune_text.ipynb).
 
 Reproduire l'étude de faisabilité et les rapports :
 
