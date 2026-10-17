@@ -10,7 +10,7 @@
 
 \begin{document}
 
-\pagedegarde{Collecte des données, exploration et premiers modèles}{Version de travail, octobre 2026}{Étapes 1 à 4 sur 8 rédigées : collecte, intégration continue, exploration, référence}
+\pagedegarde{Collecte des données, exploration et premiers modèles}{Version de travail, octobre 2026}{Étapes 1 à 5 sur 8 rédigées : collecte, intégration continue, exploration, référence, XGBoost}
 
 \setcounter{tocdepth}{1}
 \tableofcontents
@@ -534,5 +534,122 @@ H0 capte 20,3~\% des réclamations indemnisées en traitant 10~\% de la file, so
 Le produit seul apporte peu (11,4~\%). Presque tout le gain vient du motif. Le sous-motif ajoute 0,1 point de Capture, avec un intervalle de $-0{,}5$ à $+0{,}7$ point : l'écart est indiscernable de zéro. Il améliore un peu la PR-AUC (0,23 à 0,25), donc le classement sur l'ensemble de la file, mais pas sur les 10~\% du haut.
 
 J'ai aussi fait varier le poids du lissage de 0 à 500. La Capture reste entre 20,3~\% et 20,5~\%. Avec 350\,000 réclamations d'entraînement, presque toutes les catégories sont assez grandes pour que leur taux soit fiable. Le lissage ne crée donc pas de gain ici ; il reste un garde-fou pour les catégories rares ou nouvelles, qui apparaîtront en production.
+
+\section{Modèle XGBoost sur les variables structurées}
+
+\subsection{Objectif}
+
+Cette étape entraîne le premier modèle de machine learning du projet, un XGBoost, sur les seules variables connues à l'arrivée d'une réclamation, sans le texte. Il doit battre la règle H0 d'au moins 5 points de Capture@10~\%. Chaque essai est enregistré dans MLflow avec ses variables, ses paramètres, ses résultats, la version du code et l'empreinte des données utilisées.
+
+\subsection{Les variables}
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}l l Y@{}}
+\toprule
+Variable & Décision & Raison \\
+\midrule
+Produit, sous-produit, motif, sous-motif, canal de dépôt, État & utilisées & Connues à la réception \\
+Étiquettes \emph{Older American}, \emph{Servicemember} & exclues & Ce sont les groupes dont on vérifie qu'ils ne sont pas désavantagés : on ne s'en sert pas pour décider \\
+Code postal & exclu & Il peut servir de substitut à l'origine des personnes \\
+Établissement & variante à part & Il serait constant pour une banque cliente \\
+Volumes récents & créés & Nombre de réclamations reçues dans les jours précédents, voir ci-dessous \\
+\bottomrule
+\end{tabularx}
+\caption{Variables du modèle}
+\end{table}
+
+L'exploration a montré que les vagues de réclamations (campagnes, pannes) aboutissent rarement à une indemnisation. J'ai donc créé des compteurs : pour chaque réclamation, le nombre de réclamations reçues dans les 7 jours précédents pour le même établissement et le même motif, et des variantes sur 30 jours, pour l'établissement tous motifs confondus et pour le motif tous établissements confondus. Le jour même est exclu, et les compteurs portent sur toutes les réclamations reçues, y compris celles qui seront écartées ensuite parce que trop récentes : c'est exactement ce que verrait une banque à l'arrivée d'une réclamation. Ces variables ne contiennent donc aucune information du futur, et un test le vérifie.
+
+Les variables textuelles sont données à XGBoost comme des catégories, qu'il découpe lui-même sans encodage préalable. Une catégorie jamais vue à l'entraînement est traitée comme une valeur manquante.
+
+\subsection{L'arrêt de l'entraînement}
+
+XGBoost ajoute des arbres un par un. Pour savoir quand s'arrêter, il faut un jeu de données qu'il ne voit pas pendant l'entraînement. Utiliser la validation pour cela l'aurait usée avant même de comparer les modèles. J'ai donc mis de côté les trois derniers mois de l'entraînement (avril à juin 2025) : le modèle apprend sur janvier 2022 à mars 2025 et s'arrête quand ses prédictions sur avril-juin cessent de s'améliorer pendant 100 arbres.
+
+Un premier essai mesurait cette amélioration avec la PR-AUC. Le modèle sans volumes s'est alors arrêté après 4 arbres seulement : la PR-AUC du jeu d'arrêt fluctuait au point d'atteindre son maximum dès le début. Avec la log-loss, plus régulière et qui mesure aussi la justesse des probabilités, le même modèle va jusqu'à 80 arbres pour un résultat presque identique (21,6~\% au lieu de 21,2~\%). C'est la log-loss qui a été retenue.
+
+\subsection{Résultats sur la validation}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{xgboost-validation.png}
+\caption{Capture@10~\% des variantes XGBoost et de H0 sur la validation (juillet à décembre 2025).}
+\end{figure}
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{@{}l r r r@{}}
+\toprule
+Modèle & Capture@10~\% & Gain sur H0 [IC 95~\%] & PR-AUC \\
+\midrule
+H0 & 20,3~\% & -- & 0,25 \\
+A : variables structurées & 21,6~\% & +1,3 [0,7 ; 1,9] & 0,26 \\
+B : A + volume récent & 23,2~\% & +2,9 [2,2 ; 3,7] & 0,27 \\
+C : A + tous les volumes récents & 22,9~\% & +2,6 [1,8 ; 3,4] & 0,28 \\
+D : C + établissement (information) & 30,5~\% & +10,2 [9,4 ; 11,1] & 0,37 \\
+\bottomrule
+\end{tabular}
+\caption{Variantes XGBoost sur la validation}
+\end{table}
+
+Les variables structurées seules apportent 1,3 point. Le compteur de volume récent en apporte 1,6 de plus : c'est un vrai signal. Les compteurs supplémentaires n'ajoutent rien, et la variante C fait même légèrement moins bien que B. Je garde donc B, plus simple.
+
+La variante D montre que l'établissement fait gagner 7 à 8 points de plus. Ce gain vient du fait de savoir quelle banque indemnise le plus souvent. Il ne servirait à rien à une banque qui trie sa propre file, puisque pour elle cette variable est toujours la même. Le cadrage a défini le client comme une banque ; changer cette définition maintenant parce que D passe la barre serait ajuster le critère au résultat. D reste une information, pas un candidat.
+
+\subsection{Réglage des paramètres}
+
+La validation sert aussi à régler le modèle. Chaque essai supplémentaire augmente cependant le risque de trouver un bon score par chance. J'ai donc fixé un budget de 8 réglages avant de regarder les résultats, sur la variante B.
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{@{}c c c c r r@{}}
+\toprule
+Réglage & Profondeur & Feuille minimale & Vitesse & Capture@10~\% & Gain sur H0 \\
+\midrule
+1 (défaut) & 6 & 50 & 0,05 & 23,2~\% & +2,9 \\
+2 & 4 & 20 & 0,05 & 23,0~\% & +2,8 \\
+3 & 4 & 100 & 0,05 & 23,2~\% & +2,9 \\
+4 & 6 & 20 & 0,05 & 23,4~\% & +3,1 \\
+5 & 6 & 100 & 0,05 & 23,3~\% & +3,0 \\
+6 & 8 & 20 & 0,05 & 23,3~\% & +3,0 \\
+7 & 8 & 100 & 0,05 & 23,0~\% & +2,7 \\
+8 & 6 & 50 & 0,02 & 23,3~\% & +3,1 \\
+\bottomrule
+\end{tabular}
+\caption{Les 8 réglages de la variante B sur la validation}
+\end{table}
+
+Les 8 réglages donnent tous entre 23,0~\% et 23,4~\%. Cet écart de 0,4 point est bien plus petit que l'incertitude de chaque mesure, d'environ un point. Le meilleur, le réglage 4 (+3,1 points, intervalle de 2,5 à 3,8), est retenu comme candidat, en sachant que son avance sur le réglage par défaut n'est pas significative et que son score est légèrement optimiste, puisqu'il a été choisi parmi 8.
+
+La conclusion est surtout la suivante : le modèle ne manque pas de réglages, il manque d'information. Avec les variables connues à l'arrivée et sans l'établissement, il plafonne à environ 3 points au-dessus de H0.
+
+\subsection{Ce que le modèle utilise}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{xgboost-contributions.png}
+\caption{Contribution moyenne de chaque variable au score du modèle B, mesurée par les valeurs SHAP sur 50\,000 réclamations de la validation.}
+\end{figure}
+
+Les valeurs SHAP mesurent, pour chaque réclamation, de combien chaque variable déplace le score. Le sous-motif arrive en tête alors qu'il n'apportait presque rien à H0 par rapport au motif seul. Ce n'est pas contradictoire : chaque sous-motif appartient à un seul motif, si bien qu'il porte aussi l'information du motif, en plus détaillé. Le volume récent arrive en deuxième position, ce qui confirme l'intérêt de cette variable. L'État contribue un peu : c'est une information géographique, dont l'effet sur l'équité sera vérifié à l'étape 7.
+
+\subsection{Où en est-on}
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}Y Y@{}}
+\toprule
+Constat & Conséquence \\
+\midrule
+Le meilleur modèle éligible bat H0 de 3,1 points sur la validation, intervalle de 2,5 à 3,8 & Le gain est réel, mais en dessous des 5 points exigés par le cadrage \\
+Les réglages ne changent presque rien & La marge de progression est dans l'information, pas dans le modèle \\
+L'établissement ferait gagner 7 points de plus & Hors du cadre d'une banque unique ; mesuré pour information \\
+\bottomrule
+\end{tabularx}
+\caption{Bilan de l'étape 5}
+\end{table}
+
+L'étape suivante mesure ce qu'apporte le texte des réclamations. La décision finale sera prise sur la période de test, comme prévu au cadrage : si aucun modèle éligible n'atteint H0 + 5 points, c'est la règle H0 qui sera utilisée pour la suite du projet.
 
 \end{document}
