@@ -13,6 +13,9 @@ Les évolutions notables du projet sont notées ici, selon le format [Keep a Cha
 - Préparation des données pour la modélisation (`complaint_triage.data.prepare`) : retrait des six gestionnaires de fichiers de consommateurs (62 321 réclamations, 0,1 % d'indemnisation), règle des 90 jours confirmée par la courbe de maturité, cible `is_monetary_relief`. 523 552 réclamations préparées.
 - Liste fermée des colonnes connues à la réception, avec un test qui échoue si une colonne n'a pas de rôle défini.
 - Script d'exploration reproductible (`scripts/analysis/explore_dataset.py`) et rapport v0.1, section 3 : maturité des issues, établissements sans indemnisation, pic de janvier 2025 (panne chez Capital One, campagne sur les frais de découvert de Navy Federal), récits recopiés (6,3 %, indemnisés à 0,25 %), taux d'indemnisation par motif.
+- Cadre d'évaluation (`complaint_triage.evaluation`) : découpage dans le temps (entraînement jusqu'en juin 2025, validation au second semestre 2025, test en 2026, fermé jusqu'à la décision finale), Capture@10 % semaine par semaine avec traitement exact des ex æquo, PR-AUC, intervalle de confiance par bootstrap sur des semaines entières, y compris pour l'écart entre deux classements.
+- Règle de référence H0 (`complaint_triage.models.baseline`) : taux d'indemnisation par produit, motif et sous-motif, lissé vers la catégorie parente. Capture@10 % de 20,3 % sur la validation [19,4 ; 21,1], contre 10 % pour le hasard.
+- Rapport v0.1, section 4.
 - Intégration continue avec GitHub Actions : lint, format, typage strict et tests sur une machine propre, à chaque PR et à chaque push sur `main`, avec les versions exactes du `uv.lock`.
 
 ### Corrigé
