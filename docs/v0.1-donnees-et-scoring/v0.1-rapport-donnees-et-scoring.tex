@@ -251,16 +251,6 @@ Une période sans fichier d'archive faisait planter la lecture des récits. & La
 
 Pour chaque défaut, j'ai d'abord écrit un test qui reproduit le problème, puis vérifié qu'il échouait sur l'ancien code : 6 des 7 nouveaux tests échouaient, le septième vérifiant seulement qu'un cas normal reste accepté. Un test de correction qui passe déjà avant la correction ne prouve rien.
 
-\subsection{Pour l'oral}
-
-\begin{quote}
-J'ai d'abord construit le pipeline de données. Il réunit deux sources officielles du régulateur : l'export structuré, qui contient l'issue la plus récente de chaque dossier, et une archive qui contient les textes, publiés jusqu'en août 2026. Le tout est relié par l'identifiant de la réclamation. Les fichiers bruts ne sont jamais modifiés, chaque version est tracée par son empreinte, et le jeu de données final est vérifié par des règles explicites.
-
-Ces règles ont servi dès le premier passage : elles ont bloqué le traitement à cause de cinq fiches sans motif. Plutôt que de désactiver la règle, j'ai écarté ces fiches de façon explicite et testée.
-
-L'enseignement principal est ailleurs. Près de 10~\% des réclamations classées «~carte de crédit~» visaient en fait les agences d'évaluation du crédit, avec un taux d'indemnisation quasi nul. Les garder aurait rendu le modèle artificiellement bon. C'est le genre de problème qu'on ne voit qu'en regardant les données réelles avant de modéliser.
-\end{quote}
-
 \section{Intégration continue}
 
 \subsection{Objectif}
@@ -302,14 +292,6 @@ La même exécution affichait un avertissement : la machine \nolinkurl{ubuntu-la
 \end{itemize}
 
 C'est le même principe que le fichier \texttt{uv.lock} pour les bibliothèques Python : savoir exactement ce qui s'exécute, et décider soi-même quand cela change.
-
-\subsection{Pour l'oral}
-
-\begin{quote}
-J'ai mis en place une CI avec GitHub Actions qui relance le lint, le typage strict et les tests à chaque pull request, sur une machine vierge et avec les versions exactes du fichier de verrouillage. La branche principale est protégée : une pull request ne peut pas être fusionnée si un contrôle échoue.
-
-La première exécution a échoué parce que j'avais référencé une version d'action qui n'existait pas. J'ai corrigé en épinglant chaque action sur l'empreinte de son commit et en fixant la version d'Ubuntu, pour la même raison que je verrouille les dépendances Python : un environnement qui change sans prévenir rend les pannes impossibles à reproduire.
-\end{quote}
 
 \section{Exploration des données}
 
@@ -480,16 +462,6 @@ Liste fermée des colonnes, vérifiée par un test & Une réponse publique de la
 \caption{Décisions de l'étape d'exploration}
 \end{table}
 
-\subsection{Pour l'oral}
-
-\begin{quote}
-Avant de modéliser, j'ai vérifié les hypothèses du cadrage sur les vraies données. La courbe de maturité a confirmé qu'il faut attendre environ 90 jours pour connaître l'issue d'une réclamation ; sans cette règle, le taux d'indemnisation paraît deux fois plus faible sur les dossiers récents.
-
-J'ai aussi retiré 62\,000 réclamations visant des gestionnaires de fichiers de consommateurs, comme Equifax. Ils ne tiennent pas les comptes, une banque ne reçoit pas ces réclamations, et leur taux d'indemnisation quasi nul aurait rendu le modèle artificiellement bon.
-
-Enfin, en expliquant un pic de janvier 2025, j'ai découvert que 6~\% des récits sont des copies mot pour mot, presque jamais indemnisées. C'est un piège pour le modèle de texte : il faudra l'évaluer en tenant compte de ces copies.
-\end{quote}
-
 \section{Cadre d'évaluation et règle de référence}
 
 \subsection{Objectif}
@@ -562,15 +534,5 @@ H0 capte 20,3~\% des réclamations indemnisées en traitant 10~\% de la file, so
 Le produit seul apporte peu (11,4~\%). Presque tout le gain vient du motif. Le sous-motif ajoute 0,1 point de Capture, avec un intervalle de $-0{,}5$ à $+0{,}7$ point : l'écart est indiscernable de zéro. Il améliore un peu la PR-AUC (0,23 à 0,25), donc le classement sur l'ensemble de la file, mais pas sur les 10~\% du haut.
 
 J'ai aussi fait varier le poids du lissage de 0 à 500. La Capture reste entre 20,3~\% et 20,5~\%. Avec 350\,000 réclamations d'entraînement, presque toutes les catégories sont assez grandes pour que leur taux soit fiable. Le lissage ne crée donc pas de gain ici ; il reste un garde-fou pour les catégories rares ou nouvelles, qui apparaîtront en production.
-
-\subsection{Pour l'oral}
-
-\begin{quote}
-J'ai construit le cadre d'évaluation avant tout modèle. Les données sont coupées dans le temps : entraînement jusqu'en juin 2025, validation sur le second semestre 2025, et un test sur 2026 que je n'ouvre qu'une fois, pour la décision finale.
-
-La métrique suit le fonctionnement réel du service : chaque semaine, on regarde quelle part des dossiers indemnisés se trouve dans les 10~\% traités en premier. L'intervalle de confiance est calculé en tirant des semaines entières, parce que les réclamations d'une même semaine se ressemblent.
-
-La règle de référence, le taux historique par motif, capte déjà 20~\% des dossiers indemnisés, deux fois plus que le hasard. C'est la barre : mon modèle doit faire au moins 25~\%, sinon je garde la règle.
-\end{quote}
 
 \end{document}
