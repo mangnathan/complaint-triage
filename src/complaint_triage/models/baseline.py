@@ -16,6 +16,13 @@ H0_LEVELS: tuple[tuple[str, ...], ...] = (
     ("product", "issue", "sub_issue"),
 )
 
+# Référence d'une banque qui trie sa propre file : ses propres taux historiques par motif,
+# rapprochés de ceux du marché quand elle a peu de réclamations dans une catégorie.
+BANK_H0_LEVELS: tuple[tuple[str, ...], ...] = (
+    *H0_LEVELS,
+    ("company", "product", "issue", "sub_issue"),
+)
+
 
 class RateBaseline:
     """Note chaque réclamation par le taux d'indemnisation de sa catégorie, appris sur le passé.

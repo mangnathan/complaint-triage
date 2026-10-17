@@ -42,6 +42,31 @@ def test_capture_is_computed_week_by_week_then_pooled() -> None:
     assert capture_at(scores, labels, groups=weeks, share=0.5) == pytest.approx(0.5)
 
 
+def test_ranking_within_queues_ignores_differences_between_queues() -> None:
+    # Banque A : notes élevées, aucun positif. Banque B : notes basses, un positif sur dix.
+    # Classées ensemble, les 10 % du haut viennent tous de A et ne captent rien.
+    # Classées chacune dans sa file, B traite d'abord son dossier le mieux noté, qui est le bon.
+    scores = [0.9] * 10 + [0.2] + [0.1] * 9
+    labels = [0] * 10 + [1] + [0] * 9
+    banks = ["A"] * 10 + ["B"] * 10
+
+    assert capture_at(scores, labels, share=0.10) == pytest.approx(0.0)
+    assert capture_at(scores, labels, share=0.10, queues=banks) == pytest.approx(1.0)
+
+
+def test_queues_are_summed_back_into_one_row_per_week() -> None:
+    table = capture_by_group(
+        [0.9, 0.1, 0.9, 0.1],
+        [1, 0, 0, 1],
+        groups=["s1"] * 4,
+        share=0.5,
+        queues=["A", "A", "B", "B"],
+    )
+
+    assert list(table["group"]) == ["s1"]
+    assert table["positives"].iloc[0] == 2
+
+
 def test_bootstrap_interval_contains_the_estimate_and_is_reproducible() -> None:
     rng = np.random.default_rng(1)
     labels = rng.random(5000) < 0.15
