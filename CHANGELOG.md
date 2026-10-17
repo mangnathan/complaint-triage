@@ -10,6 +10,7 @@ Les évolutions notables du projet sont notées ici, selon le format [Keep a Cha
 - 19 tests unitaires, sans accès réseau.
 - Rapport v0.1, section 1 : collecte et premier traitement.
 - Préambule LaTeX commun à tous les rapports.
+- Intégration continue avec GitHub Actions : lint, format, typage strict et tests sur une machine propre, à chaque PR et à chaque push sur `main`, avec les versions exactes du `uv.lock`.
 
 ### Corrigé
 - Les séries mensuelles du rapport v0.0 comptaient aussi les cartes prépayées de l'ancienne catégorie combinée (6 066 réclamations en 2022-2023, environ 1 % du volume). Les conclusions du cadrage ne changent pas.
