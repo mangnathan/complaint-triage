@@ -1,0 +1,241 @@
+\documentclass[11pt,a4paper]{article}
+
+\newcommand{\rapporttitre}{Données et scoring}
+\newcommand{\rapportversion}{v0.1}
+\input{../latex/preambule}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta}
+
+\begin{document}
+
+\pagedegarde{Collecte des données, exploration et premiers modèles}{Version de travail, octobre 2026}{Étape 1 sur 8 rédigée : collecte et premier traitement}
+
+\setcounter{tocdepth}{2}
+\tableofcontents
+\newpage
+
+\section{Collecte et premier traitement}
+
+\subsection{Objectif}
+
+Cette première étape transforme les fichiers publiés par le CFPB en un seul jeu de données propre, vérifié et reproductible. Toutes les étapes suivantes (exploration, modèles, agent) partiront de ce fichier, jamais des sources brutes. Si une erreur apparaît dans les sources, elle doit être repérée ici, avant de fausser un modèle.
+
+\subsection{Deux sources qui se complètent}
+
+Le CFPB publie deux jeux de fichiers. Aucun ne suffit seul.
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}Y Y Y@{}}
+\toprule
+Source & Ce que je prends & Pourquoi \\
+\midrule
+Export complet (zip de 340~Mo, mis à jour chaque jour) & Toutes les colonnes structurées, dont l'issue de chaque réclamation & C'est la seule source où l'issue est à jour. Pour un dossier reçu en septembre, l'issue n'est souvent connue qu'en octobre. \\
+Archive des récits (19 fichiers, 2021 à août 2026) & L'identifiant et le texte du récit & Le texte n'est plus publié ailleurs depuis le 14 août 2026. En revanche, l'issue y est figée au jour de la publication, donc souvent encore « en cours ». \\
+\bottomrule
+\end{tabularx}
+\caption{Ce que chaque source apporte}
+\end{table}
+
+Les deux sources sont reliées par l'identifiant de la réclamation (\texttt{Complaint ID}). Une réclamation sans récit reste dans le jeu de données, avec un récit vide.
+
+J'ai préféré l'export complet à l'API, que j'avais utilisée pour l'étude de faisabilité. L'API renvoie les résultats par pages et il aurait fallu plus de 600 requêtes pour tout récupérer, avec le risque d'en perdre une en route. L'export est un seul fichier, daté, dont on peut vérifier l'intégrité. L'API servira plus tard, pour la collecte quotidienne des nouvelles réclamations.
+
+\subsection{Le chemin des données}
+
+Les données passent par trois dossiers, toujours dans le même sens :
+
+\begin{itemize}
+  \item \texttt{data/raw/} contient les fichiers téléchargés, que l'on ne modifie jamais ;
+  \item \texttt{data/interim/} contient le jeu de données assemblé et vérifié, résultat de cette étape ;
+  \item \texttt{data/processed/} contiendra les variables prêtes pour les modèles (étape 4).
+\end{itemize}
+
+Cette séparation a une conséquence pratique : si une règle de traitement change, il suffit de relancer le traitement à partir de \texttt{raw/}, sans rien retélécharger et sans jamais travailler sur des fichiers déjà modifiés à la main. Aucun de ces dossiers n'est versionné dans Git.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  node distance=0.45cm and 0.5cm,
+  etape/.style={draw=accent, fill=fond, rounded corners=3pt, align=center, font=\footnotesize, minimum height=1.1cm, text width=2.35cm},
+  source/.style={draw=ink2, fill=gray!8, rounded corners=3pt, align=center, font=\footnotesize, minimum height=1.1cm, text width=2.35cm},
+  fleche/.style={-{Stealth[length=2mm]}, color=ink2}]
+  \node[source] (export) {Export complet\\(structuré)};
+  \node[source, below=of export] (archive) {Archive\\(récits)};
+  \node[etape, right=of export] (lecture) {Lecture\\par morceaux};
+  \node[etape, right=of lecture] (perimetre) {Périmètre et\\nomenclature};
+  \node[etape, right=of perimetre] (motif) {Fiches sans motif\\écartées};
+  \node[etape, right=of archive] (recits) {Récits du\\périmètre};
+  \node[etape, below=of motif] (jointure) {Jointure\\un pour un};
+  \node[etape, below=of jointure] (controles) {Contrôles\\(pandera)};
+  \node[source, left=of controles, text width=2.9cm] (sortie) {Parquet\\+ manifeste};
+  \draw[fleche] (export) -- (lecture);
+  \draw[fleche] (lecture) -- (perimetre);
+  \draw[fleche] (perimetre) -- (motif);
+  \draw[fleche] (archive) -- (recits);
+  \draw[fleche] (motif) -- (jointure);
+  \draw[fleche] (recits) -- (jointure);
+  \draw[fleche] (jointure) -- (controles);
+  \draw[fleche] (controles) -- (sortie);
+\end{tikzpicture}
+\caption{Les étapes du traitement. En gris, les fichiers ; en bleu, les traitements.}
+\end{figure}
+
+\subsection{Les étapes du traitement}
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}l Y Y@{}}
+\toprule
+Étape & Ce qu'elle fait & Pourquoi \\
+\midrule
+Téléchargement & Récupère les fichiers une seule fois, en passant par un fichier temporaire renommé seulement une fois complet & Une coupure réseau ne doit jamais laisser un fichier tronqué que l'on prendrait pour valide \\
+Lecture par morceaux & Lit l'export 250\,000 lignes à la fois et ne garde que le périmètre & L'export complet dépasse 2~Go une fois décompressé : le charger en entier saturerait la mémoire \\
+Nomenclature & Répartit l'ancienne catégorie « Credit card or prepaid card » selon le sous-produit & Avant 2023, cartes de crédit et cartes prépayées étaient mélangées ; seules les premières entrent dans le périmètre \\
+Fiches sans motif & Écarte les réclamations dont le motif est vide, et les compte & Le motif est indispensable pour classer une réclamation \\
+Récits & Lit l'archive en ne gardant que les identifiants du périmètre & L'archive contient des millions de récits, tous produits confondus \\
+Jointure & Associe chaque réclamation à son récit, en refusant toute duplication & Un identifiant présent deux fois créerait des doublons, et des scores faussement bons \\
+Contrôles & Vérifie toutes les règles du jeu de données & Le traitement s'arrête si une seule règle est violée \\
+Écriture & Enregistre le résultat au format Parquet, avec un manifeste & Voir ci-dessous \\
+\bottomrule
+\end{tabularx}
+\caption{Ce que fait chaque étape, et pourquoi}
+\end{table}
+
+Le format Parquet remplace ici le CSV pour trois raisons. Les types sont conservés : une date reste une date, un identifiant reste un entier. On peut lire seulement les colonnes utiles. Enfin, le fichier est compressé. Le jeu de données final occupe 186~Mo, récits compris.
+
+\subsection{Les contrôles de qualité}
+
+Les règles sont écrites avec la bibliothèque \emph{pandera}. Les principales sont les suivantes :
+\begin{itemize}
+  \item chaque identifiant est unique ;
+  \item le produit appartient au périmètre (carte de crédit, compte courant ou d'épargne) ;
+  \item l'issue fait partie des cinq valeurs connues ;
+  \item le motif, l'établissement et le canal de dépôt sont toujours renseignés ;
+  \item aucune colonne inattendue n'apparaît.
+\end{itemize}
+
+Les contrôles signalent toutes les erreurs en une fois, au lieu de s'arrêter à la première. C'est utile sur des centaines de milliers de lignes : on obtient la liste complète des problèmes en un seul passage.
+
+Ces contrôles ont servi dès le premier passage sur les vraies données. Le traitement s'est arrêté sur une erreur : 5 réclamations n'avaient pas de motif. Ce sont toutes des comptes courants transmis par une autre administration (canal \emph{Referral}), reçus entre mars et mai 2024, sans motif ni sous-produit. Toutes les autres règles étaient respectées.
+
+J'avais deux options. Assouplir la règle aurait laissé passer, plus tard, des milliers de lignes vides si la source se dégradait. J'ai préféré écarter explicitement ces 5 fiches : le traitement les compte, l'écrit dans le manifeste et un test vérifie ce comportement. La règle reste stricte, et la décision est visible.
+
+\aretenir{Une règle de qualité ne se désactive pas quand elle bloque. On corrige la donnée ou on documente une exception, de façon visible et testée.}
+
+\subsection{La traçabilité}
+
+À côté du jeu de données, le traitement écrit un manifeste au format JSON. Il indique la date de construction, la date de début retenue, le nombre de lignes, le nombre de récits, le nombre de fiches écartées, et pour chacune des 20 sources son adresse, sa taille et son empreinte SHA-256.
+
+L'empreinte permet de savoir, des mois plus tard, sur quelle version exacte des fichiers un modèle a été entraîné. C'est important ici parce que l'export change chaque jour : les issues des dossiers récents évoluent.
+
+\subsection{Les tests}
+
+Le module est couvert par 19 tests automatiques, qui s'exécutent en 3 secondes. Ils n'utilisent ni le réseau ni les vraies données : chaque test fabrique ses propres petites données, au format exact du CFPB. Ils vérifient notamment :
+\begin{itemize}
+  \item qu'un fichier déjà présent n'est pas retéléchargé ;
+  \item qu'une coupure réseau ne laisse aucun fichier partiel ;
+  \item que les anciennes cartes prépayées sont bien exclues et les anciennes cartes de crédit conservées ;
+  \item qu'un récit présent dans deux fichiers d'archive n'est gardé qu'une fois, dans sa dernière version ;
+  \item que le jeu de données final respecte toutes les règles.
+\end{itemize}
+
+Pour tester le téléchargement sans réseau, la fonction qui ouvre une adresse web est passée en paramètre. En production, c'est la vraie connexion ; dans les tests, une fausse fonction renvoie des octets préparés à l'avance, ou simule une coupure.
+
+\subsection{Le jeu de données obtenu}
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{@{}l r@{}}
+\toprule
+Indicateur & Valeur \\
+\midrule
+Réclamations & 627\,297 \\
+\quad dont cartes de crédit & 332\,520 \\
+\quad dont comptes courants ou d'épargne & 294\,777 \\
+Période de réception & 1\textsuperscript{er} janvier 2022 -- 16 octobre 2026 \\
+Réclamations avec récit & 297\,874 (47,5~\%) \\
+Fiches écartées faute de motif & 5 \\
+Établissements différents & 1\,290 \\
+Taille sur disque & 186~Mo \\
+\bottomrule
+\end{tabular}
+\caption{Résultat du traitement (export du 17 octobre 2026)}
+\end{table}
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{@{}l r r@{}}
+\toprule
+Issue de la réclamation & Nombre & Part \\
+\midrule
+Clôturée avec explication & 453\,907 & 72,4~\% \\
+Clôturée avec indemnisation financière & 87\,043 & 13,9~\% \\
+Clôturée avec correction non financière & 78\,042 & 12,4~\% \\
+Encore en cours & 7\,681 & 1,2~\% \\
+Réponse hors délai & 624 & 0,1~\% \\
+\bottomrule
+\end{tabular}
+\caption{Répartition de la variable cible}
+\end{table}
+
+\subsection{Ce que nous apprend ce premier traitement}
+
+\subsubsection*{La cible correspond au cadrage}
+13,9~\% des réclamations aboutissent à une indemnisation financière (14,5~\% pour les cartes, 13,1~\% pour les comptes). Le chiffre de l'étude de faisabilité est confirmé sur les données complètes.
+
+\subsubsection*{Les dossiers récents n'ont pas encore d'issue}
+1,2~\% des réclamations sont encore en cours, presque toutes reçues dans les trois derniers mois. La règle prévue au cadrage, attendre 90 jours avant d'utiliser une réclamation pour l'entraînement, reste nécessaire. Elle sera vérifiée à l'étape 3.
+
+\subsubsection*{Le texte est disponible pour environ la moitié des dossiers}
+La part des réclamations avec récit est de 51~\% en 2022, 58~\% en 2023, 50~\% en 2024 et 53~\% en 2025, puis tombe à 29~\% en 2026 à cause de l'arrêt de la publication. Un modèle de texte disposera donc d'environ 256\,000 récits sur 2022-2025, ce qui est largement suffisant.
+
+\subsubsection*{Les établissements sont très concentrés}
+Les cinq premiers (JPMorgan Chase, Capital One, Bank of America, Wells Fargo, Citibank) reçoivent 41~\% des réclamations. Un modèle pourrait apprendre surtout les habitudes de ces cinq banques. L'évaluation devra donc être faite aussi établissement par établissement.
+
+\subsubsection*{Les sous-groupes sont assez grands pour l'analyse d'équité}
+9~\% des réclamations portent l'étiquette \emph{Older American}, 9~\% \emph{Servicemember} et 2~\% les deux, soit plusieurs dizaines de milliers de dossiers par groupe.
+
+\subsubsection*{Une partie du périmètre ne concerne pas des banques}
+C'est la découverte la plus importante de cette étape. Les trois agences d'évaluation du crédit (Equifax, Experian et TransUnion) totalisent 58\,328 réclamations dans notre périmètre, soit 9,3~\%, presque toutes classées en « carte de crédit ». Il s'agit en réalité de contestations de rapports de crédit, que le cadrage voulait exclure. Leur taux d'indemnisation est de 0,1~\%, contre 15,3~\% pour les banques.
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{@{}l r r@{}}
+\toprule
+Établissement & Réclamations & Indemnisation financière \\
+\midrule
+Agences d'évaluation du crédit (3) & 58\,328 & 0,1~\% \\
+Banques et autres établissements & 568\,969 & 15,3~\% \\
+\bottomrule
+\end{tabular}
+\caption{Deux populations très différentes dans le même périmètre}
+\end{table}
+
+Si on les garde, un modèle apprendra très vite qu'une réclamation contre une agence n'aboutit presque jamais à une indemnisation. Ses scores paraîtront bons, mais ce sera un gain facile, sans intérêt pour une banque, qui ne reçoit pas ces réclamations. Je propose de les retirer du périmètre à l'étape 3, après avoir vérifié qu'aucune autre catégorie ne se comporte de la même façon. La décision sera documentée dans l'ADR de la v0.1.
+
+\subsubsection*{Une petite correction des chiffres du cadrage}
+Les séries mensuelles du rapport v0.0 comptaient toute l'ancienne catégorie « Credit card or prepaid card », donc aussi 6\,066 réclamations sur cartes prépayées en 2022 et 2023, soit environ 1~\% du volume de ces deux années. Les conclusions du cadrage ne changent pas. Les chiffres de ce rapport utilisent la nomenclature corrigée.
+
+\subsection{Limites et questions pour la suite}
+
+\begin{itemize}
+  \item Le jeu de données reflète l'export d'un jour donné. Reconstruit dans un mois, il contiendra des issues différentes pour les dossiers récents. Le manifeste permet de savoir quelle version a été utilisée.
+  \item Le pic de janvier 2025 repéré pendant le cadrage n'est pas encore expliqué.
+  \item Le traitement des agences d'évaluation du crédit reste à trancher.
+  \item La règle des 90 jours doit être confirmée par la courbe de maturité des issues.
+\end{itemize}
+
+Ces points sont le programme de l'étape 3.
+
+\subsection{Pour l'oral}
+
+\begin{quote}
+J'ai d'abord construit le pipeline de données. Il réunit deux sources officielles du régulateur : l'export structuré, qui contient l'issue la plus récente de chaque dossier, et une archive qui contient les textes, publiés jusqu'en août 2026. Le tout est relié par l'identifiant de la réclamation. Les fichiers bruts ne sont jamais modifiés, chaque version est tracée par son empreinte, et le jeu de données final est vérifié par des règles explicites.
+
+Ces règles ont servi dès le premier passage : elles ont bloqué le traitement à cause de cinq fiches sans motif. Plutôt que de désactiver la règle, j'ai écarté ces fiches de façon explicite et testée.
+
+L'enseignement principal est ailleurs. Près de 10~\% des réclamations classées « carte de crédit » visaient en fait les agences d'évaluation du crédit, avec un taux d'indemnisation quasi nul. Les garder aurait rendu le modèle artificiellement bon. C'est le genre de problème qu'on ne voit qu'en regardant les données réelles avant de modéliser.
+\end{quote}
+
+\end{document}
