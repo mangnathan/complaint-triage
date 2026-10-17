@@ -8,20 +8,13 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 
-MISSING = "(vide)"
-_SEPARATOR = "\x1f"
+from complaint_triage.models.features import category_keys
 
 H0_LEVELS: tuple[tuple[str, ...], ...] = (
     ("product",),
     ("product", "issue"),
     ("product", "issue", "sub_issue"),
 )
-
-
-def _keys(df: pd.DataFrame, columns: tuple[str, ...]) -> pd.Series:
-    parts = pd.concat([df[column].fillna(MISSING).astype(str) for column in columns], axis=1)
-    first = parts.iloc[:, 0]
-    return first.str.cat(parts.iloc[:, 1:], sep=_SEPARATOR) if len(columns) > 1 else first
 
 
 class RateBaseline:
@@ -52,8 +45,9 @@ class RateBaseline:
         parent = np.full(len(df), self.global_rate_)
         self.rates_ = []
         for level in self.levels:
+            keys = category_keys(df, level)
             stats = (
-                pd.DataFrame({"key": _keys(df, level).to_numpy(), "y": labels, "parent": parent})
+                pd.DataFrame({"key": keys.to_numpy(), "y": labels, "parent": parent})
                 .groupby("key")
                 .agg(n=("y", "size"), positives=("y", "sum"), parent=("parent", "first"))
             )
@@ -61,7 +55,7 @@ class RateBaseline:
                 stats["n"] + self.prior_weight
             )
             self.rates_.append(rate)
-            parent = rate.reindex(_keys(df, level)).to_numpy()
+            parent = rate.reindex(keys).to_numpy()
         return self
 
     def score(self, df: pd.DataFrame) -> npt.NDArray[np.float64]:
@@ -69,6 +63,6 @@ class RateBaseline:
             raise RuntimeError("Appeler fit avant score.")
         scores = np.full(len(df), self.global_rate_)
         for level, rate in zip(self.levels, self.rates_, strict=True):
-            known = rate.reindex(_keys(df, level)).to_numpy()
+            known = rate.reindex(category_keys(df, level)).to_numpy()
             scores = np.where(np.isnan(known), scores, known)
         return scores
