@@ -10,7 +10,7 @@
 
 \begin{document}
 
-\pagedegarde{Collecte des données, exploration et premiers modèles}{Version de travail, octobre 2026}{Étapes 1 à 5 sur 8 rédigées : collecte, intégration continue, exploration, référence, XGBoost}
+\pagedegarde{Collecte des données, exploration et premiers modèles}{Version de travail, octobre 2026}{Étapes 1 à 5 sur 8 rédigées, et correction de la métrique}
 
 \setcounter{tocdepth}{1}
 \tableofcontents
@@ -464,6 +464,8 @@ Liste fermée des colonnes, vérifiée par un test & Une réponse publique de la
 
 \section{Cadre d'évaluation et règle de référence}
 
+\aretenir{Les résultats de cette section classent toutes les banques ensemble. La section~\ref{sec:correction} montre pourquoi cette mesure a été corrigée, et donne les résultats dans la file de chaque établissement. Ceux de cette section sont conservés comme trace de ce qui avait été mesuré.}
+
 \subsection{Objectif}
 
 Cette étape construit le cadre qui servira à juger tous les modèles, puis mesure la règle de référence H0 définie au cadrage. Le résultat est la barre que le modèle devra dépasser.
@@ -536,6 +538,8 @@ Le produit seul apporte peu (11,4~\%). Presque tout le gain vient du motif. Le s
 J'ai aussi fait varier le poids du lissage de 0 à 500. La Capture reste entre 20,3~\% et 20,5~\%. Avec 350\,000 réclamations d'entraînement, presque toutes les catégories sont assez grandes pour que leur taux soit fiable. Le lissage ne crée donc pas de gain ici ; il reste un garde-fou pour les catégories rares ou nouvelles, qui apparaîtront en production.
 
 \section{Modèle XGBoost sur les variables structurées}
+
+\aretenir{Les conclusions de cette section ont été révisées. Mesuré dans la file de chaque établissement (section~\ref{sec:correction}), le gain de 3 points de la variante B disparaît, et aucun modèle sans texte ne fait mieux que les taux propres à chaque banque.}
 
 \subsection{Objectif}
 
@@ -651,5 +655,71 @@ L'établissement ferait gagner 7 points de plus & Hors du cadre d'une banque uni
 \end{table}
 
 L'étape suivante mesure ce qu'apporte le texte des réclamations. La décision finale sera prise sur la période de test, comme prévu au cadrage : si aucun modèle éligible n'atteint H0 + 5 points, c'est la règle H0 qui sera utilisée pour la suite du projet.
+
+\section{Correction de la métrique d'évaluation}
+\label{sec:correction}
+
+\subsection{Le défaut}
+
+La référence textuelle de l'étape 6 (section suivante) a donné un résultat spectaculaire : 30,2~\% de Capture@10~\% sur les récits de validation, contre 19,8~\% pour H0. En regardant les mots qui pesaient le plus dans ce modèle, j'ai trouvé surtout des noms de banques : \emph{comenity}, \emph{boa}, \emph{citi} ou \emph{bank of america} poussaient vers l'indemnisation, \emph{cash app}, \emph{chime}, \emph{robinhood} ou \emph{affirm} vers l'absence d'indemnisation. Le modèle avait d'abord appris à reconnaître la banque citée dans le récit.
+
+Ce constat révélait un défaut de la métrique elle-même. La Capture@10~\% classait toutes les réclamations de la semaine ensemble, toutes banques confondues. Un modèle capable de deviner la banque marquait donc des points : il plaçait en tête les réclamations des établissements qui indemnisent souvent. Or le cadrage définit le client comme une banque qui trie sa propre file. Dans cette file, toutes les réclamations concernent la même banque, et savoir laquelle elle est ne rapporte rien.
+
+\subsection{La correction}
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}l Y Y@{}}
+\toprule
+& Avant & Après \\
+\midrule
+Classement & Toutes les réclamations de la semaine ensemble & Dans la file de chaque établissement, chaque semaine, puis cumul \\
+Référence & Taux du marché par produit, motif et sous-motif & Taux propres à la banque, rapprochés de ceux du marché quand elle a peu de réclamations dans une catégorie \\
+Barre & H0 + 5 points & Inchangée \\
+\bottomrule
+\end{tabularx}
+\caption{La métrique avant et après correction}
+\end{table}
+
+Concrètement, chaque banque traite d'abord 10~\% de sa propre file ; on additionne ensuite, semaine par semaine, les réclamations indemnisées captées par toutes les banques. Le bootstrap continue de tirer des semaines entières. La nouvelle référence correspond à ce que ferait un responsable à partir de l'historique de son établissement : ses propres taux d'indemnisation par motif.
+
+Cette correction ne revient pas à changer les règles en cours de route. Elle rapproche la mesure de la définition du client écrite au cadrage, s'applique à tous les modèles de la même façon, et rend l'évaluation plus exigeante en supprimant des gains faciles. La barre de 5 points n'a pas bougé, et aucun modèle ni aucun réglage n'a été ajouté pour la réévaluation : ce sont les mêmes variantes et les mêmes 8 réglages qu'à l'étape 5.
+
+\subsection{La réévaluation}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{par-etablissement-validation.png}
+\caption{Capture@10~\% dans la file de chaque établissement, sur la validation.}
+\end{figure}
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{@{}l r r r@{}}
+\toprule
+Classement & \shortstack[r]{Banques\\mélangées} & \shortstack[r]{File de\\chaque banque} & \shortstack[r]{Écart avec H0 propre\\à la banque [IC 95~\%]} \\
+\midrule
+Hasard & 10,0~\% & 10,0~\% & $-9{,}4$ \\
+H0 du marché & 20,3~\% & 17,7~\% & $-1{,}7$ [$-2{,}2$ ; $-1{,}1$] \\
+H0 propre à la banque & 30,2~\% & 19,4~\% & -- \\
+A : variables structurées & 21,6~\% & 17,9~\% & $-1{,}5$ [$-2{,}1$ ; $-0{,}8$] \\
+B : A + volume récent & 23,2~\% & 17,7~\% & $-1{,}7$ [$-2{,}3$ ; $-1{,}1$] \\
+C : A + tous les volumes récents & 22,9~\% & 18,0~\% & $-1{,}5$ [$-2{,}2$ ; $-0{,}8$] \\
+D : C + établissement & 30,5~\% & 18,9~\% & $-0{,}5$ [$-1{,}2$ ; $+0{,}2$] \\
+D, meilleur des 8 réglages & -- & 19,4~\% & $0{,}0$ [$-0{,}5$ ; $+0{,}5$] \\
+\bottomrule
+\end{tabular}
+\caption{Réévaluation des références et des modèles de l'étape 5}
+\end{table}
+
+\subsection{Ce que la correction change}
+
+Sans le texte, aucun modèle ne fait mieux qu'une banque qui calcule ses propres taux historiques par motif. Le meilleur XGBoost l'égale exactement, sans la dépasser.
+
+Le gain de 3 points mesuré à l'étape 5 pour la variante B venait des compteurs de volume par établissement. La variante n'utilisait pas l'établissement, mais ces compteurs le trahissaient : les grandes néobanques reçoivent beaucoup de réclamations et indemnisent peu. Une fois les banques classées séparément, ce gain disparaît.
+
+L'établissement devient au contraire une variable légitime. Dans sa propre file, une banque ne gagne rien à savoir qui elle est ; en revanche, le modèle peut apprendre les habitudes propres à chaque établissement, comme le ferait un modèle entraîné sur l'historique d'une seule banque. C'est pourquoi la variante D, avec son meilleur réglage (profondeur 4, feuille minimale 100), est désormais le modèle sans texte retenu.
+
+La leçon dépasse ce projet. Un modèle peut obtenir un excellent score en exploitant une information qui ne lui servirait à rien en conditions réelles, et seule une métrique fidèle à la situation du client permet de s'en apercevoir. C'est en lisant ce que le modèle utilisait que le défaut est apparu.
 
 \end{document}
