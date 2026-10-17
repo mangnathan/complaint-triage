@@ -122,6 +122,14 @@ def _describe(url: str, path: Path) -> SourceFile:
     return SourceFile(url, path.as_posix(), path.stat().st_size, digest.hexdigest())
 
 
+def load_interim(data_dir: Path) -> tuple[pd.DataFrame, date]:
+    """Relit le jeu de données construit et la date de l'export dont il est issu."""
+    path = data_dir / "interim" / "complaints.parquet"
+    manifest = json.loads(path.with_suffix(".manifest.json").read_text(encoding="utf-8"))
+    export_date = datetime.fromisoformat(manifest["export_retrieved_at"]).date()
+    return pd.read_parquet(path), export_date
+
+
 def build_dataset(
     data_dir: Path,
     start: date,

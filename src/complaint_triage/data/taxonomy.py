@@ -15,6 +15,20 @@ _LEGACY_CREDIT_SUB_PRODUCTS = frozenset(
     {"General-purpose credit card or charge card", "Store credit card"}
 )
 
+# Gestionnaires de fichiers de consommateurs (rapports de crédit, fichiers d'incidents bancaires).
+# Ils ne tiennent ni le compte ni la carte : on les saisit pour contester un rapport ou un refus
+# d'ouverture de compte. Une banque ne reçoit pas ces réclamations, indemnisées à 0,1 %.
+CONSUMER_REPORTING_AGENCIES = frozenset(
+    {
+        "EQUIFAX, INC.",
+        "Experian Information Solutions Inc.",
+        "TRANSUNION INTERMEDIATE HOLDINGS, INC.",
+        "Early Warning Services, LLC",
+        "Fidelity National Information Services, Inc. (FNIS)",
+        "LEXISNEXIS",
+    }
+)
+
 # Produits bruts à conserver à la lecture, avant harmonisation.
 RAW_PRODUCTS_TO_READ = SCOPE_PRODUCTS | {LEGACY_CARD_PRODUCT}
 
