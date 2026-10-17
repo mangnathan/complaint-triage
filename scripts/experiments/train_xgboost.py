@@ -9,11 +9,7 @@ Résultats détaillés : mlflow ui --backend-store-uri sqlite:///mlflow.db
 from __future__ import annotations
 
 import argparse
-import hashlib
-import shutil
-import subprocess
 from dataclasses import dataclass
-from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -24,19 +20,19 @@ import matplotlib.pyplot as plt
 import mlflow
 import pandas as pd
 
-from complaint_triage.data.pipeline import load_interim
-from complaint_triage.data.prepare import TARGET, prepare_for_modeling
+from complaint_triage.data.prepare import TARGET
 from complaint_triage.evaluation.metrics import bootstrap_capture, capture_by_group, pr_auc
-from complaint_triage.evaluation.split import TRAIN, VALIDATION, assign_period, week_of
+from complaint_triage.evaluation.split import TRAIN, VALIDATION
 from complaint_triage.models.baseline import RateBaseline
+from complaint_triage.models.dataset import STOP_START, load_modeling_frame, split_training
 from complaint_triage.models.features import (
     CATEGORICAL_FEATURES,
     COMPANY_FEATURE,
     RECENT_VOLUME_FEATURE,
     VOLUME_FEATURES,
-    volume_features,
 )
 from complaint_triage.models.gradient_boosting import GradientBoostingScorer
+from complaint_triage.tracking import file_digest, git_commit, tracking_uri
 
 BLUE, GREY, INK, INK_2, GRID, SURFACE = (
     "#2a78d6",
@@ -46,9 +42,6 @@ BLUE, GREY, INK, INK_2, GRID, SURFACE = (
     "#e4e3df",
     "#fcfcfb",
 )
-# Les trois derniers mois de l'entraînement servent à arrêter l'ajout d'arbres :
-# la validation reste réservée à la comparaison des modèles.
-STOP_START = date(2025, 4, 1)
 ALL_VOLUMES = tuple(VOLUME_FEATURES)
 EXPERIMENTS: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
     "A : variables structurées": (CATEGORICAL_FEATURES, ()),
@@ -83,32 +76,6 @@ class Context:
     validation: pd.DataFrame
     h0_weeks: pd.DataFrame
     manifest: Path
-
-
-def git_commit() -> str:
-    git = shutil.which("git")
-    if git is None:
-        return "inconnu"
-    result = subprocess.run(
-        [git, "rev-parse", "--short", "HEAD"], capture_output=True, text=True, check=False
-    )
-    return result.stdout.strip() or "inconnu"
-
-
-def file_digest(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()[:16]
-
-
-def load_modeling_frame(data_dir: Path) -> pd.DataFrame:
-    df, export_date = load_interim(data_dir)
-    # Les volumes sont comptés sur toutes les réclamations reçues, y compris celles qui seront
-    # retirées ensuite (trop récentes) : c'est ce que verrait la banque à l'arrivée.
-    volumes = volume_features(df).set_axis(df["complaint_id"])
-    prepared, _ = prepare_for_modeling(df, export_date)
-    prepared = prepared.join(volumes, on="complaint_id")
-    prepared["periode"] = assign_period(prepared["date_received"])
-    prepared["semaine"] = week_of(prepared["date_received"])
-    return prepared
 
 
 def run_experiment(
@@ -252,14 +219,15 @@ def main() -> None:
     h0_scores = RateBaseline().fit(train, train[TARGET]).score(validation)
     h0_weeks = capture_by_group(h0_scores, labels, weeks)
     h0 = bootstrap_capture(h0_weeks)
+    fit_part, stop_part = split_training(frame)
     context = Context(
-        fit_part=train[train["date_received"] < pd.Timestamp(STOP_START)],
-        stop_part=train[train["date_received"] >= pd.Timestamp(STOP_START)],
+        fit_part=fit_part,
+        stop_part=stop_part,
         validation=validation,
         h0_weeks=h0_weeks,
         manifest=args.data_dir / "interim" / "complaints.manifest.json",
     )
-    mlflow.set_tracking_uri(f"sqlite:///{Path('mlflow.db').resolve().as_posix()}")
+    mlflow.set_tracking_uri(tracking_uri())
 
     rows: list[dict[str, object]] = [
         {
