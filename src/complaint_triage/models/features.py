@@ -15,6 +15,9 @@ CATEGORICAL_FEATURES = ("product", "sub_product", "issue", "sub_issue", "submitt
 COMPANY_FEATURE = "company"
 RECENT_VOLUME_FEATURE = "recent_same_issue_7d"
 
+# Variables numériques du modèle retenu à l'étape 5 (variante B).
+SELECTED_NUMERIC = (RECENT_VOLUME_FEATURE,)
+
 # Compteurs de réclamations reçues avant le jour même : (colonnes de regroupement, jours).
 VOLUME_FEATURES: dict[str, tuple[tuple[str, ...], int]] = {
     RECENT_VOLUME_FEATURE: (("company", "issue"), 7),

@@ -28,6 +28,10 @@ DEFAULT_PARAMS: dict[str, Any] = {
 }
 
 
+# Réglage retenu à l'étape 5 parmi 8 essais fixés à l'avance (écart non significatif).
+SELECTED_PARAMS: dict[str, Any] = {"max_depth": 6, "min_child_weight": 20, "learning_rate": 0.05}
+
+
 class GradientBoostingScorer:
     """Classifieur XGBoost utilisé comme note de priorité.
 
