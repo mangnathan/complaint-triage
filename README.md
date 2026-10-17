@@ -57,7 +57,7 @@ scripts/          scripts exécutables (faisabilité, exploration, génération 
 src/complaint_triage/
   data/           collecte, contrôle, assemblage et préparation des données du CFPB
   evaluation/     découpage dans le temps, Capture@10 %, intervalles de confiance
-  models/         règle de référence H0, puis les modèles
+  models/         règle de référence H0, variables et modèle XGBoost
 tests/            tests automatiques (pytest)
 ```
 
@@ -74,6 +74,8 @@ uv run python -m complaint_triage.data --refresh-export # même chose avec l'exp
 uv run pytest                                           # tests, sans réseau
 uv run python scripts/analysis/explore_dataset.py       # analyses, tableaux et figures de l'exploration
 uv run python scripts/evaluation/evaluate_references.py # classements de référence sur la validation
+uv run python scripts/experiments/train_xgboost.py      # variantes XGBoost, tracées dans MLflow
+uv run mlflow ui --backend-store-uri sqlite:///mlflow.db # consulter les expériences
 ```
 
 Reproduire l'étude de faisabilité et les rapports :
