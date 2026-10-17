@@ -1,0 +1,4 @@
+periode,debut,fin,reclamations,semaines,taux_indemnisation
+entrainement,2022-01-01,2025-06-30,349695,184,15.98
+validation,2025-07-01,2025-12-31,74768,27,14.47
+test,2026-01-01,2026-07-19,99089,29,15.21
