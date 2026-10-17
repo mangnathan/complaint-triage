@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import io
 import zipfile
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 import pytest
@@ -53,6 +55,49 @@ def export_frame() -> pd.DataFrame:
         )
         rows.append(row)
     return pd.DataFrame(rows)
+
+
+DEFAULT_COMPLAINT: dict[str, Any] = {
+    "date_received": "2024-01-15",
+    "product": "Credit card",
+    "sub_product": "Store credit card",
+    "issue": "Fees or interest",
+    "sub_issue": None,
+    "company": "Example Bank",
+    "state": "CA",
+    "zip_code": "90001",
+    "tags": None,
+    "submitted_via": "Web",
+    "date_sent_to_company": "2024-01-16",
+    "company_public_response": None,
+    "company_response": "Closed with monetary relief",
+    "timely_response": "Yes",
+    "narrative": None,
+}
+_DATE_COLUMNS = ("date_received", "date_sent_to_company")
+
+
+@pytest.fixture
+def make_complaints() -> Callable[..., pd.DataFrame]:
+    """Construit des réclamations au format du jeu `interim`, une ligne par dictionnaire.
+
+    Chaque dictionnaire ne précise que ce qui change par rapport à DEFAULT_COMPLAINT.
+    """
+
+    def build(*overrides: dict[str, Any]) -> pd.DataFrame:
+        rows = [
+            {"complaint_id": index + 1, **DEFAULT_COMPLAINT, **override}
+            for index, override in enumerate(overrides or ({},))
+        ]
+        df = pd.DataFrame(rows)
+        for column in df.columns:
+            if column in _DATE_COLUMNS:
+                df[column] = pd.to_datetime(df[column]).astype("datetime64[ns]")
+            elif column != "complaint_id":
+                df[column] = df[column].astype("str")
+        return df.astype({"complaint_id": "int64"})
+
+    return build
 
 
 def zip_csv(df: pd.DataFrame, member: str) -> bytes:
