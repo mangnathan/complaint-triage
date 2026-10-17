@@ -7,6 +7,7 @@ sans GPU, et déjà installés sur Colab. Ils sont importés seulement au moment
 from __future__ import annotations
 
 import math
+import os
 from dataclasses import dataclass
 from typing import Any
 
@@ -55,7 +56,12 @@ def fine_tune_and_score(
     output_dir: str,
     config: TransformerConfig = TransformerConfig(),  # noqa: B008  objet immuable
 ) -> pd.DataFrame:
-    """Entraîne sur `fit`, garde le meilleur point selon la perte sur `stop`, note `to_score`."""
+    """Entraîne sur `fit`, garde le meilleur point selon la perte sur `stop`, note `to_score`.
+
+    Si `output_dir` contient déjà des points de sauvegarde, l'entraînement reprend au dernier au
+    lieu de repartir de zéro. Sur Colab, placer `output_dir` dans Google Drive permet ainsi de
+    survivre à une coupure de session.
+    """
     import torch
     from transformers import (
         AutoModelForSequenceClassification,
@@ -65,6 +71,7 @@ def fine_tune_and_score(
         Trainer,
         TrainingArguments,
     )
+    from transformers.trainer_utils import get_last_checkpoint
 
     tokenizer = AutoTokenizer.from_pretrained(config.model_name)
     model = AutoModelForSequenceClassification.from_pretrained(config.model_name, num_labels=2)
@@ -100,7 +107,10 @@ def fine_tune_and_score(
         data_collator=DataCollatorWithPadding(tokenizer),
         callbacks=[EarlyStoppingCallback(early_stopping_patience=3)],
     )
-    trainer.train()
+    last_checkpoint = get_last_checkpoint(output_dir) if os.path.isdir(output_dir) else None
+    if last_checkpoint is not None:
+        print(f"Reprise à partir de {last_checkpoint}")
+    trainer.train(resume_from_checkpoint=last_checkpoint)
 
     logits = trainer.predict(_encode(to_score, tokenizer, config.max_length)).predictions
     shifted = np.exp(logits - logits.max(axis=1, keepdims=True))
