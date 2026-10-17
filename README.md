@@ -50,16 +50,29 @@ docs/
   pdf/            rapports PDF, un par version
   vX.Y-<étape>/   source LaTeX, figures et données agrégées de chaque rapport
   adr/            notes de décision technique
+  latex/          mise en page commune des rapports
 scripts/          scripts exécutables (faisabilité, génération des rapports)
-src/complaint_triage/    code de l'application (à partir de la v0.1)
+src/complaint_triage/
+  data/           collecte, contrôle et assemblage des données du CFPB
+tests/            tests automatiques (pytest)
 ```
 
 ## Reproduire
 
 Il faut Python 3.12, [uv](https://docs.astral.sh/uv/) et [Tectonic](https://tectonic-typesetting.github.io) pour compiler les rapports. Aucune clé d'API n'est nécessaire, car les données du CFPB sont publiques.
 
+Construire le jeu de données (environ 1,4 Go téléchargés la première fois, puis réutilisés) :
+
 ```bash
 uv sync
+uv run python -m complaint_triage.data                  # écrit data/interim/complaints.parquet
+uv run python -m complaint_triage.data --refresh-export # même chose avec l'export du jour
+uv run pytest                                           # tests, sans réseau
+```
+
+Reproduire l'étude de faisabilité et les rapports :
+
+```bash
 uv run python scripts/feasibility/collect_cfpb_feasibility_stats.py
 uv run python scripts/feasibility/plot_feasibility_figures.py
 uv run python scripts/docs/build_report_pdf.py \
