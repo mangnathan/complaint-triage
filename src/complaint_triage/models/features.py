@@ -15,9 +15,6 @@ CATEGORICAL_FEATURES = ("product", "sub_product", "issue", "sub_issue", "submitt
 COMPANY_FEATURE = "company"
 RECENT_VOLUME_FEATURE = "recent_same_issue_7d"
 
-# Variables numériques du modèle retenu à l'étape 5 (variante B).
-SELECTED_NUMERIC = (RECENT_VOLUME_FEATURE,)
-
 # Compteurs de réclamations reçues avant le jour même : (colonnes de regroupement, jours).
 VOLUME_FEATURES: dict[str, tuple[tuple[str, ...], int]] = {
     RECENT_VOLUME_FEATURE: (("company", "issue"), 7),
@@ -25,6 +22,12 @@ VOLUME_FEATURES: dict[str, tuple[tuple[str, ...], int]] = {
     "recent_company_7d": (("company",), 7),  # panne ou incident chez un établissement
     "recent_issue_all_companies_7d": (("issue",), 7),  # vague nationale sur un motif
 }
+
+# Variables du modèle retenu après la réévaluation dans la file de chaque banque (variante D).
+# L'établissement y est légitime : dans sa propre file, une banque ne gagne rien à savoir qui elle
+# est, mais le modèle peut apprendre les habitudes propres à chaque établissement.
+SELECTED_CATEGORICAL = (*CATEGORICAL_FEATURES, COMPANY_FEATURE)
+SELECTED_NUMERIC = tuple(VOLUME_FEATURES)
 
 
 def category_keys(df: pd.DataFrame, columns: tuple[str, ...]) -> pd.Series:
