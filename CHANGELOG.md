@@ -4,6 +4,16 @@ Les évolutions notables du projet sont notées ici, selon le format [Keep a Cha
 
 ## [Non publié]
 
+### Ajouté
+- Module `complaint_triage.data` : téléchargement idempotent et atomique des sources du CFPB, lecture de l'export complet par morceaux, harmonisation de l'ancienne catégorie « Credit card or prepaid card », jointure des récits de l'archive, contrôles de schéma avec pandera, écriture en Parquet avec un manifeste (tailles et empreintes SHA-256 des sources).
+- Commande `python -m complaint_triage.data` pour construire le jeu de données.
+- 19 tests unitaires, sans accès réseau.
+- Rapport v0.1, section 1 : collecte et premier traitement.
+- Préambule LaTeX commun à tous les rapports.
+
+### Corrigé
+- Les séries mensuelles du rapport v0.0 comptaient aussi les cartes prépayées de l'ancienne catégorie combinée (6 066 réclamations en 2022-2023, environ 1 % du volume). Les conclusions du cadrage ne changent pas.
+
 ## [v0.0] - 2026-10-17
 
 ### Ajouté
