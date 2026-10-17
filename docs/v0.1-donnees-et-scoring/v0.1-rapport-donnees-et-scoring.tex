@@ -8,7 +8,7 @@
 
 \begin{document}
 
-\pagedegarde{Collecte des données, exploration et premiers modèles}{Version de travail, octobre 2026}{Étape 1 sur 8 rédigée : collecte et premier traitement}
+\pagedegarde{Collecte des données, exploration et premiers modèles}{Version de travail, octobre 2026}{Étapes 1 et 2 sur 8 rédigées : collecte des données, intégration continue}
 
 \setcounter{tocdepth}{2}
 \tableofcontents
@@ -125,13 +125,13 @@ J'avais deux options. Assouplir la règle aurait laissé passer, plus tard, des 
 
 \subsection{La traçabilité}
 
-À côté du jeu de données, le traitement écrit un manifeste au format JSON. Il indique la date de construction, la date de début retenue, le nombre de lignes, le nombre de récits, le nombre de fiches écartées, et pour chacune des 20 sources son adresse, sa taille et son empreinte SHA-256.
+À côté du jeu de données, le traitement écrit un manifeste au format JSON. Il indique la date de construction, la date de l'export utilisé, la date de début retenue, le nombre de lignes, le nombre de récits, le nombre de fiches écartées, et pour chacune des 20 sources son adresse, sa taille et son empreinte SHA-256.
 
 L'empreinte permet de savoir, des mois plus tard, sur quelle version exacte des fichiers un modèle a été entraîné. C'est important ici parce que l'export change chaque jour : les issues des dossiers récents évoluent.
 
 \subsection{Les tests}
 
-Le module est couvert par 19 tests automatiques, qui s'exécutent en 3 secondes. Ils n'utilisent ni le réseau ni les vraies données : chaque test fabrique ses propres petites données, au format exact du CFPB. Ils vérifient notamment :
+Le module est couvert par 25 tests automatiques, qui s'exécutent en quelques secondes. Ils n'utilisent ni le réseau ni les vraies données : chaque test fabrique ses propres petites données, au format exact du CFPB. Ils vérifient notamment :
 \begin{itemize}
   \item qu'un fichier déjà présent n'est pas retéléchargé ;
   \item qu'une coupure réseau ne laisse aucun fichier partiel ;
@@ -228,6 +228,27 @@ Les séries mensuelles du rapport v0.0 comptaient toute l'ancienne catégorie «
 
 Ces points sont le programme de l'étape 3.
 
+\subsection{Ce que la relecture du code a changé}
+
+Avant la fusion, j'ai relu le code comme une pull request en entreprise. Il fonctionnait sur les vraies données, et pourtant la relecture a trouvé quatre défauts, qui ne se déclenchaient que dans des cas moins courants.
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}Y Y@{}}
+\toprule
+Défaut & Correction \\
+\midrule
+Le manifeste ne donnait pas la date de l'export. Or l'export est réutilisé depuis le cache, et c'est sa date qui fixe les issues connues (règle des 90 jours). & Le manifeste indique la date de l'export, distincte de la date de construction. \\
+L'option de rafraîchissement supprimait l'export en cache avant d'avoir téléchargé le nouveau. & Le nouvel export ne remplace l'ancien qu'une fois complet. \\
+Un fichier tronqué, sans erreur réseau, aurait été accepté. & La taille reçue est comparée à la taille annoncée par le serveur ; une erreur 404 n'est plus réessayée. \\
+Une période sans fichier d'archive faisait planter la lecture des récits. & La lecture renvoie un tableau vide. \\
+\bottomrule
+\end{tabularx}
+\caption{Défauts trouvés en relecture}
+\end{table}
+
+Pour chaque défaut, j'ai d'abord écrit un test qui reproduit le problème, puis vérifié qu'il échouait sur l'ancien code : 6 des 7 nouveaux tests échouaient, le septième vérifiant seulement qu'un cas normal reste accepté. Un test de correction qui passe déjà avant la correction ne prouve rien.
+
 \subsection{Pour l'oral}
 
 \begin{quote}
@@ -236,6 +257,56 @@ J'ai d'abord construit le pipeline de données. Il réunit deux sources officiel
 Ces règles ont servi dès le premier passage : elles ont bloqué le traitement à cause de cinq fiches sans motif. Plutôt que de désactiver la règle, j'ai écarté ces fiches de façon explicite et testée.
 
 L'enseignement principal est ailleurs. Près de 10~\% des réclamations classées « carte de crédit » visaient en fait les agences d'évaluation du crédit, avec un taux d'indemnisation quasi nul. Les garder aurait rendu le modèle artificiellement bon. C'est le genre de problème qu'on ne voit qu'en regardant les données réelles avant de modéliser.
+\end{quote}
+
+\section{Intégration continue}
+
+\subsection{Objectif}
+
+Jusqu'ici, les contrôles (lint, format, typage, tests) ne tournaient que sur mon ordinateur, avant chaque commit. Rien ne garantissait qu'ils passeraient ailleurs : un fichier oublié dans un commit, une dépendance installée seulement sur ma machine ou une différence entre Windows et Linux passeraient inaperçus.
+
+L'intégration continue relance ces contrôles sur un serveur de GitHub, dans un environnement vierge, à chaque pull request et à chaque modification de la branche principale. Une fois la branche principale protégée, GitHub refuse la fusion d'une pull request tant que ces contrôles ne sont pas tous passés.
+
+\subsection{Le fonctionnement}
+
+Le workflow tient dans un fichier, \nolinkurl{.github/workflows/ci.yml}. Il exécute les étapes suivantes sur une machine Ubuntu 24.04 :
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}l Y r@{}}
+\toprule
+Étape & Rôle & Durée \\
+\midrule
+Installation & Python 3.12 et les versions exactes des dépendances du \texttt{uv.lock}. L'option \texttt{--locked} fait échouer la CI si ce fichier n'est plus à jour. & 1~s \\
+Lint & ruff signale les erreurs courantes et les règles de sécurité. & < 1~s \\
+Format & ruff vérifie que le code est formaté, sans le modifier. & < 1~s \\
+Typage & mypy en mode strict. & 7~s \\
+Tests & Les 25 tests unitaires, sans réseau. & 2~s \\
+\bottomrule
+\end{tabularx}
+\caption{Étapes de la CI (exécution du 17 octobre 2026, 22~s au total)}
+\end{table}
+
+Trois réglages limitent les risques. La CI n'a que des droits de lecture sur le dépôt : un workflow qui peut écrire est une faille classique. Un nouveau push sur une branche annule l'exécution précédente, devenue inutile. Enfin, la version de uv est fixée à celle utilisée en local.
+
+\subsection{Deux enseignements de la mise en place}
+
+La première exécution a échoué au bout de 3 secondes. L'action qui installe uv était appelée avec la référence \texttt{v10}, que son auteur ne publie pas : il ne diffuse que des versions précises, comme \texttt{v10.3.0}. Le fichier de CI n'avait jamais tourné. Comme le code, il se teste en l'exécutant.
+
+La même exécution affichait un avertissement : la machine \nolinkurl{ubuntu-latest} allait passer à Ubuntu 26 deux jours plus tard. J'en ai tiré deux règles :
+\begin{itemize}
+  \item chaque action est référencée par l'empreinte exacte de son commit, avec la version en commentaire. Une étiquette comme \texttt{v7} peut être déplacée par l'auteur de l'action, ou par quelqu'un qui aurait pris le contrôle de son dépôt ; une empreinte ne bouge pas ;
+  \item le système est fixé à Ubuntu 24.04. Un environnement qui change tout seul rend les pannes impossibles à reproduire.
+\end{itemize}
+
+C'est le même principe que le fichier \texttt{uv.lock} pour les bibliothèques Python : savoir exactement ce qui s'exécute, et décider soi-même quand cela change.
+
+\subsection{Pour l'oral}
+
+\begin{quote}
+J'ai mis en place une CI avec GitHub Actions qui relance le lint, le typage strict et les tests à chaque pull request, sur une machine vierge et avec les versions exactes du fichier de verrouillage. La branche principale est protégée : une pull request ne peut pas être fusionnée si un contrôle échoue.
+
+La première exécution a échoué parce que j'avais référencé une version d'action qui n'existait pas. J'ai corrigé en épinglant chaque action sur l'empreinte de son commit et en fixant la version d'Ubuntu, pour la même raison que je verrouille les dépendances Python : un environnement qui change sans prévenir rend les pannes impossibles à reproduire.
 \end{quote}
 
 \end{document}
