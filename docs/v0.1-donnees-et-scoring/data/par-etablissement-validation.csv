@@ -1,0 +1,8 @@
+modele,capture_banques_melangees,capture_par_banque,capture_bas,capture_haut,gain_vs_h0_banque,gain_bas,gain_haut,pr_auc
+Hasard,10.0,10.0,10.0,10.0,-9.39,-10.01,-8.8,0.14
+H0 du marché,20.27,17.72,16.93,18.49,-1.67,-2.22,-1.07,0.25
+H0 propre à la banque,30.24,19.39,18.8,20.01,0.0,0.0,0.0,0.37
+A : variables structurées,21.55,17.91,17.05,18.76,-1.48,-2.14,-0.82,0.26
+B : A + volume récent,23.21,17.65,16.9,18.35,-1.74,-2.33,-1.14,0.27
+C : A + tous les volumes récents,22.85,17.95,17.1,18.77,-1.45,-2.15,-0.78,0.28
+D : C + établissement,30.49,18.86,18.05,19.75,-0.53,-1.21,0.16,0.37
