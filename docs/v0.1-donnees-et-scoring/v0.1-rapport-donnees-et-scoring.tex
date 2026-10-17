@@ -3,12 +3,13 @@
 \newcommand{\rapporttitre}{Données et scoring}
 \newcommand{\rapportversion}{v0.1}
 \input{../latex/preambule}
+\usepackage{microtype}
 \usepackage{tikz}
 \usetikzlibrary{positioning,arrows.meta}
 
 \begin{document}
 
-\pagedegarde{Collecte des données, exploration et premiers modèles}{Version de travail, octobre 2026}{Étapes 1 et 2 sur 8 rédigées : collecte des données, intégration continue}
+\pagedegarde{Collecte des données, exploration et premiers modèles}{Version de travail, octobre 2026}{Étapes 1 à 3 sur 8 rédigées : collecte, intégration continue, exploration}
 
 \setcounter{tocdepth}{2}
 \tableofcontents
@@ -31,7 +32,7 @@ Le CFPB publie deux jeux de fichiers. Aucun ne suffit seul.
 Source & Ce que je prends & Pourquoi \\
 \midrule
 Export complet (zip de 340~Mo, mis à jour chaque jour) & Toutes les colonnes structurées, dont l'issue de chaque réclamation & C'est la seule source où l'issue est à jour. Pour un dossier reçu en septembre, l'issue n'est souvent connue qu'en octobre. \\
-Archive des récits (19 fichiers, 2021 à août 2026) & L'identifiant et le texte du récit & Le texte n'est plus publié ailleurs depuis le 14 août 2026. En revanche, l'issue y est figée au jour de la publication, donc souvent encore « en cours ». \\
+Archive des récits (19 fichiers, 2021 à août 2026) & L'identifiant et le texte du récit & Le texte n'est plus publié ailleurs depuis le 14 août 2026. En revanche, l'issue y est figée au jour de la publication, donc souvent encore «~en cours~». \\
 \bottomrule
 \end{tabularx}
 \caption{Ce que chaque source apporte}
@@ -91,7 +92,7 @@ Cette séparation a une conséquence pratique : si une règle de traitement chan
 \midrule
 Téléchargement & Récupère les fichiers une seule fois, en passant par un fichier temporaire renommé seulement une fois complet & Une coupure réseau ne doit jamais laisser un fichier tronqué que l'on prendrait pour valide \\
 Lecture par morceaux & Lit l'export 250\,000 lignes à la fois et ne garde que le périmètre & L'export complet dépasse 2~Go une fois décompressé : le charger en entier saturerait la mémoire \\
-Nomenclature & Répartit l'ancienne catégorie « Credit card or prepaid card » selon le sous-produit & Avant 2023, cartes de crédit et cartes prépayées étaient mélangées ; seules les premières entrent dans le périmètre \\
+Nomenclature & Répartit l'ancienne catégorie «~Credit card or prepaid card~» selon le sous-produit & Avant 2023, cartes de crédit et cartes prépayées étaient mélangées ; seules les premières entrent dans le périmètre \\
 Fiches sans motif & Écarte les réclamations dont le motif est vide, et les compte & Le motif est indispensable pour classer une réclamation \\
 Récits & Lit l'archive en ne gardant que les identifiants du périmètre & L'archive contient des millions de récits, tous produits confondus \\
 Jointure & Associe chaque réclamation à son récit, en refusant toute duplication & Un identifiant présent deux fois créerait des doublons, et des scores faussement bons \\
@@ -197,7 +198,7 @@ Les cinq premiers (JPMorgan Chase, Capital One, Bank of America, Wells Fargo, Ci
 9~\% des réclamations portent l'étiquette \emph{Older American}, 9~\% \emph{Servicemember} et 2~\% les deux, soit plusieurs dizaines de milliers de dossiers par groupe.
 
 \subsubsection*{Une partie du périmètre ne concerne pas des banques}
-C'est la découverte la plus importante de cette étape. Les trois agences d'évaluation du crédit (Equifax, Experian et TransUnion) totalisent 58\,328 réclamations dans notre périmètre, soit 9,3~\%, presque toutes classées en « carte de crédit ». Il s'agit en réalité de contestations de rapports de crédit, que le cadrage voulait exclure. Leur taux d'indemnisation est de 0,1~\%, contre 15,3~\% pour les banques.
+C'est la découverte la plus importante de cette étape. Les trois agences d'évaluation du crédit (Equifax, Experian et TransUnion) totalisent 58\,328 réclamations dans notre périmètre, soit 9,3~\%, presque toutes classées en «~carte de crédit~». Il s'agit en réalité de contestations de rapports de crédit, que le cadrage voulait exclure. Leur taux d'indemnisation est de 0,1~\%, contre 15,3~\% pour les banques.
 
 \begin{table}[H]
 \centering\small
@@ -215,7 +216,7 @@ Banques et autres établissements & 568\,969 & 15,3~\% \\
 Si on les garde, un modèle apprendra très vite qu'une réclamation contre une agence n'aboutit presque jamais à une indemnisation. Ses scores paraîtront bons, mais ce sera un gain facile, sans intérêt pour une banque, qui ne reçoit pas ces réclamations. Je propose de les retirer du périmètre à l'étape 3, après avoir vérifié qu'aucune autre catégorie ne se comporte de la même façon. La décision sera documentée dans l'ADR de la v0.1.
 
 \subsubsection*{Une petite correction des chiffres du cadrage}
-Les séries mensuelles du rapport v0.0 comptaient toute l'ancienne catégorie « Credit card or prepaid card », donc aussi 6\,066 réclamations sur cartes prépayées en 2022 et 2023, soit environ 1~\% du volume de ces deux années. Les conclusions du cadrage ne changent pas. Les chiffres de ce rapport utilisent la nomenclature corrigée.
+Les séries mensuelles du rapport v0.0 comptaient toute l'ancienne catégorie «~Credit card or prepaid card~», donc aussi 6\,066 réclamations sur cartes prépayées en 2022 et 2023, soit environ 1~\% du volume de ces deux années. Les conclusions du cadrage ne changent pas. Les chiffres de ce rapport utilisent la nomenclature corrigée.
 
 \subsection{Limites et questions pour la suite}
 
@@ -256,7 +257,7 @@ J'ai d'abord construit le pipeline de données. Il réunit deux sources officiel
 
 Ces règles ont servi dès le premier passage : elles ont bloqué le traitement à cause de cinq fiches sans motif. Plutôt que de désactiver la règle, j'ai écarté ces fiches de façon explicite et testée.
 
-L'enseignement principal est ailleurs. Près de 10~\% des réclamations classées « carte de crédit » visaient en fait les agences d'évaluation du crédit, avec un taux d'indemnisation quasi nul. Les garder aurait rendu le modèle artificiellement bon. C'est le genre de problème qu'on ne voit qu'en regardant les données réelles avant de modéliser.
+L'enseignement principal est ailleurs. Près de 10~\% des réclamations classées «~carte de crédit~» visaient en fait les agences d'évaluation du crédit, avec un taux d'indemnisation quasi nul. Les garder aurait rendu le modèle artificiellement bon. C'est le genre de problème qu'on ne voit qu'en regardant les données réelles avant de modéliser.
 \end{quote}
 
 \section{Intégration continue}
@@ -307,6 +308,185 @@ C'est le même principe que le fichier \texttt{uv.lock} pour les bibliothèques 
 J'ai mis en place une CI avec GitHub Actions qui relance le lint, le typage strict et les tests à chaque pull request, sur une machine vierge et avec les versions exactes du fichier de verrouillage. La branche principale est protégée : une pull request ne peut pas être fusionnée si un contrôle échoue.
 
 La première exécution a échoué parce que j'avais référencé une version d'action qui n'existait pas. J'ai corrigé en épinglant chaque action sur l'empreinte de son commit et en fixant la version d'Ubuntu, pour la même raison que je verrouille les dépendances Python : un environnement qui change sans prévenir rend les pannes impossibles à reproduire.
+\end{quote}
+
+\section{Exploration des données}
+
+\subsection{Objectif}
+
+Avant de modéliser, il fallait répondre à cinq questions laissées ouvertes par le cadrage et par la collecte. À partir de quand l'issue d'une réclamation est-elle connue ? Que faire des réclamations qui ne visent pas des banques ? D'où vient le pic de janvier 2025 ? Quelles colonnes peut-on utiliser sans tricher ? Quels motifs mènent le plus souvent à une indemnisation ?
+
+Toutes les analyses de cette section sont recalculées par le script \nolinkurl{scripts/analysis/explore_dataset.py}, qui produit les tableaux et les figures à partir du jeu de données collecté. Les décisions qui en découlent sont appliquées par le module \nolinkurl{complaint_triage.data.prepare} et couvertes par des tests.
+
+\subsection{Quand l'issue d'une réclamation est-elle connue ?}
+
+Pour chaque réclamation, j'ai calculé son âge à la date de l'export, puis la part de dossiers encore en cours et la part de dossiers indemnisés, par tranche d'âge.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{maturite-des-issues.png}
+\caption{Issue des réclamations selon leur âge à la date de l'export du 17 octobre 2026.}
+\label{fig:maturite}
+\end{figure}
+
+La moitié des dossiers de moins de 15 jours sont encore en cours. Cette part tombe à 16~\% entre 45 et 60 jours, puis brusquement à 1,5~\% entre 60 et 75 jours, et à 0,4~\% entre 90 et 105 jours. Au-delà de 90 jours, il ne reste que 51 dossiers en cours sur plus de 580\,000.
+
+Le taux d'indemnisation, lui, monte de 5,8~\% à environ 15~\% pendant que les dossiers mûrissent. C'est exactement le biais attendu : un modèle entraîné sur des dossiers récents verrait un taux d'indemnisation deux fois trop faible.
+
+La règle des 90 jours prévue au cadrage est donc confirmée. Un seuil de 60 jours serait possible, mais les issues bougent encore un peu entre 60 et 90 jours (1,5~\% puis 0,8~\% de dossiers en cours). Je garde 90 jours par prudence. Le coût est connu : les 41\,373 réclamations des trois derniers mois ne servent pas à l'entraînement. Les 51 dossiers anciens encore en cours sont retirés eux aussi.
+
+\subsection{Des établissements qui ne sont pas des banques}
+
+La collecte avait révélé que les trois agences d'évaluation du crédit représentaient 9,3~\% du périmètre. En cherchant tous les établissements de plus de 1\,000 réclamations dont le taux d'indemnisation est inférieur à 1~\%, j'en ai trouvé douze.
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}Y r r l@{}}
+\toprule
+Établissement & Réclamations & Indemnisées & Nature \\
+\midrule
+Equifax & 20\,452 & 0,00~\% & gestionnaire de fichiers \\
+TransUnion & 19\,509 & 0,01~\% & gestionnaire de fichiers \\
+Experian & 18\,367 & 0,17~\% & gestionnaire de fichiers \\
+Block (Cash App) & 10\,303 & 0,29~\% & fournisseur du produit \\
+Robinhood & 2\,253 & 0,00~\% & fournisseur du produit \\
+Early Warning Services & 2\,093 & 0,00~\% & gestionnaire de fichiers \\
+FIS (ChexSystems) & 1\,845 & 0,05~\% & gestionnaire de fichiers \\
+Netspend, Avant, Self Financial, Affirm, Continental Finance & 6\,417 & 0 à 1~\% & fournisseurs du produit \\
+\bottomrule
+\end{tabularx}
+\caption{Établissements de plus de 1\,000 réclamations avec moins de 1~\% d'indemnisation}
+\end{table}
+
+Ce tableau mélange deux situations. Les gestionnaires de fichiers tiennent des registres sur les consommateurs : rapports de crédit pour Equifax, Experian et TransUnion, fichiers d'incidents bancaires pour Early Warning Services et FIS. Les réclamations qu'ils reçoivent contestent un rapport ou un refus d'ouverture de compte (1\,299 des 2\,093 réclamations visant Early Warning Services portent sur l'ouverture d'un compte). Ils ne tiennent ni le compte ni la carte du client, et une banque ne reçoit jamais ces réclamations.
+
+Les autres, comme Block ou Affirm, vendent eux-mêmes le produit. Leur taux nul reflète une pratique de l'établissement, que le modèle doit pouvoir apprendre.
+
+J'exclus donc les six gestionnaires de fichiers, LexisNexis compris (55 réclamations), soit 62\,321 réclamations. Les fournisseurs du produit restent. L'exclusion n'est pas faite pendant la collecte mais pendant la préparation : le jeu collecté reste complet, et cette analyse peut être recalculée à tout moment.
+
+\subsection{Le pic de janvier 2025}
+
+Janvier 2025 compte 27\,440 réclamations, contre 11\,580 en moyenne pour les deux mois voisins. Le détail par jour montre deux vagues distinctes.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{pic-janvier-2025.png}
+\caption{Réclamations reçues par jour autour du pic de janvier 2025.}
+\end{figure}
+
+La première vise Navy Federal, du 15 au 18 janvier : 7\,615 réclamations dans le mois contre 615 habituellement, presque toutes sur des frais de découvert. 46~\% des récits sont identiques mot pour mot et renvoient aux «~récentes conclusions du CFPB~». En novembre 2024, le CFPB avait en effet ordonné à Navy Federal de rembourser plus de 80 millions de dollars de frais de découvert jugés abusifs\footnote{\url{https://www.consumeraffairs.com/news/navy-federal-credit-union-ordered-to-refund-more-than-80-million-110724.html}}. Tout indique un modèle de lettre qui a circulé.
+
+La seconde vise Capital One, surtout les 17 et 18 janvier : des dépôts de salaire non crédités. Elle correspond à une panne chez son prestataire FIS, qui a bloqué dépôts et paiements du 15 au 19 janvier 2025\footnote{\url{https://www.wbrc.com/2025/01/17/users-report-issues-with-deposits-payments-during-capitol-one-outage}}.
+
+Dans les deux cas, le taux d'indemnisation est d'environ 2~\%, contre 13~\% d'habitude. Ce ne sont pas des erreurs de données mais de vrais événements. Je les garde : un outil de priorisation doit justement savoir traiter ce type de vague. Ils resteront dans la période d'entraînement, puisque le test portera sur les mois les plus récents.
+
+\subsection{Les récits répétés}
+
+Le pic de janvier a fait apparaître un phénomène plus général : des récits identiques, mot pour mot, déposés par plusieurs personnes.
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{@{}l r r r r@{}}
+\toprule
+Année & Récits & Part répétée & \shortstack[r]{Indemnisés\\(répétés)} & \shortstack[r]{Indemnisés\\(uniques)} \\
+\midrule
+2022 & 37\,643 & 0,4~\% & 3,1~\% & 18,3~\% \\
+2023 & 60\,561 & 11,2~\% & 0,1~\% & 17,3~\% \\
+2024 & 64\,936 & 6,8~\% & 0,2~\% & 17,4~\% \\
+2025 & 92\,964 & 7,7~\% & 0,2~\% & 13,8~\% \\
+2026 & 41\,770 & 0,8~\% & 3,6~\% & 15,5~\% \\
+\midrule
+Toute la période & 297\,874 & 6,3~\% & 0,25~\% & 16,1~\% \\
+\bottomrule
+\end{tabular}
+\caption{Récits présents en plusieurs exemplaires identiques}
+\end{table}
+
+Un récit recopié n'aboutit presque jamais à une indemnisation (0,25~\% contre 16,1~\%). Cela pose deux problèmes pour le modèle de texte de l'étape 6. Le modèle apprendrait facilement «~texte recopié = pas d'indemnisation~», ce qui gonflerait ses scores sans rien dire de sa capacité à lire une réclamation. Et si deux copies d'un même texte se retrouvaient l'une à l'entraînement et l'autre au test, le modèle serait évalué sur un texte déjà vu. Il faudra donc évaluer ce modèle en tenant compte des copies.
+
+Un autre biais concerne le texte : un récit n'est publié que si le consommateur l'accepte. Pour les cartes, les réclamations avec récit sont plus souvent indemnisées (16,9~\%) que celles sans récit (12,3~\%). Comparer un modèle avec texte et un modèle sans texte n'aura de sens que sur les mêmes dossiers.
+
+\subsection{Les colonnes connues à la réception}
+
+Chaque colonne du jeu de données a désormais un rôle explicite.
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}l Y@{}}
+\toprule
+Rôle & Colonnes \\
+\midrule
+Connues à la réception & date de réception (pour le découpage dans le temps), produit, sous-produit, motif, sous-motif, établissement, État, code postal, étiquettes, canal de dépôt, récit \\
+Connues après coup & date de transmission à l'établissement, réponse publique de l'établissement, respect du délai \\
+Cible & issue de la réclamation \\
+\bottomrule
+\end{tabularx}
+\caption{Rôle des colonnes}
+\end{table}
+
+Les colonnes connues après coup ne servent jamais à prédire. Leur lien avec la cible est mesurable : quand l'établissement publie une réponse, le taux d'indemnisation est de 16,7~\%, contre 11,3~\% sinon. Un modèle qui utiliserait cette colonne paraîtrait meilleur en test et serait inutilisable à l'arrivée d'une réclamation.
+
+Un test automatique vérifie que chaque colonne du jeu de données a exactement un rôle. Si une colonne est ajoutée un jour, le test échoue tant qu'on n'a pas décidé si elle est connue à la réception. Une fuite d'information ne peut donc pas entrer par oubli.
+
+\subsection{Les motifs, base de la règle de référence}
+
+\begin{figure}[tbp]
+\centering
+\includegraphics[width=0.92\linewidth]{indemnisation-par-motif.png}
+\caption{Part de réclamations indemnisées par motif, pour les motifs d'au moins 2\,000 réclamations, sur le jeu préparé.}
+\end{figure}
+
+Les écarts sont très importants : un tiers des réclamations sur des frais ou intérêts de carte sont indemnisées, contre 2,3~\% des demandes d'obtention de carte. La règle H0 du cadrage, qui classe les réclamations selon le taux historique de leur produit, motif et sous-motif, sera donc une référence solide. Le modèle devra apporter davantage que cette seule information.
+
+\subsection{Le jeu de données pour la modélisation}
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{@{}l r@{}}
+\toprule
+Étape & Réclamations \\
+\midrule
+Jeu collecté & 627\,297 \\
+Gestionnaires de fichiers retirés & $-$62\,321 \\
+Réclamations de moins de 90 jours retirées & $-$41\,373 \\
+Réclamations encore en cours après 90 jours retirées & $-$51 \\
+\midrule
+Jeu préparé pour la modélisation & 523\,552 \\
+\bottomrule
+\end{tabular}
+\caption{Du jeu collecté au jeu préparé}
+\end{table}
+
+Le jeu préparé ne contient que l'identifiant, les colonnes connues à la réception et la cible, une valeur vrai ou faux qui indique si la réclamation a abouti à une indemnisation financière.
+
+\subsection{Décisions prises}
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}Y Y@{}}
+\toprule
+Décision & Raison \\
+\midrule
+Garder la règle des 90 jours & Moins de 0,4~\% de dossiers en cours après 90 jours, alors que le taux d'indemnisation monte encore avant \\
+Retirer six gestionnaires de fichiers (62\,321 réclamations) & Ils ne tiennent pas les comptes ; une banque ne reçoit pas ces réclamations \\
+Garder les fournisseurs du produit à taux nul & Leur comportement fait partie du problème réel \\
+Garder le pic de janvier 2025 & Deux événements réels, documentés par des sources publiques \\
+Tenir compte des récits recopiés pour le modèle de texte & 6,3~\% de copies, indemnisées à 0,25~\% \\
+Comparer les modèles sur les mêmes dossiers & Le récit n'est publié qu'avec l'accord du consommateur \\
+Liste fermée des colonnes, vérifiée par un test & Une réponse publique de la banque est liée à l'issue \\
+\bottomrule
+\end{tabularx}
+\caption{Décisions de l'étape d'exploration}
+\end{table}
+
+\subsection{Pour l'oral}
+
+\begin{quote}
+Avant de modéliser, j'ai vérifié les hypothèses du cadrage sur les vraies données. La courbe de maturité a confirmé qu'il faut attendre environ 90 jours pour connaître l'issue d'une réclamation ; sans cette règle, le taux d'indemnisation paraît deux fois plus faible sur les dossiers récents.
+
+J'ai aussi retiré 62\,000 réclamations visant des gestionnaires de fichiers de consommateurs, comme Equifax. Ils ne tiennent pas les comptes, une banque ne reçoit pas ces réclamations, et leur taux d'indemnisation quasi nul aurait rendu le modèle artificiellement bon.
+
+Enfin, en expliquant un pic de janvier 2025, j'ai découvert que 6~\% des récits sont des copies mot pour mot, presque jamais indemnisées. C'est un piège pour le modèle de texte : il faudra l'évaluer en tenant compte de ces copies.
 \end{quote}
 
 \end{document}
