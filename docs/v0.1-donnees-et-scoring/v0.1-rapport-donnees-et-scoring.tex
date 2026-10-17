@@ -4,14 +4,15 @@
 \newcommand{\rapportversion}{v0.1}
 \input{../latex/preambule}
 \usepackage{microtype}
+\usepackage{amsmath}
 \usepackage{tikz}
 \usetikzlibrary{positioning,arrows.meta}
 
 \begin{document}
 
-\pagedegarde{Collecte des données, exploration et premiers modèles}{Version de travail, octobre 2026}{Étapes 1 à 3 sur 8 rédigées : collecte, intégration continue, exploration}
+\pagedegarde{Collecte des données, exploration et premiers modèles}{Version de travail, octobre 2026}{Étapes 1 à 4 sur 8 rédigées : collecte, intégration continue, exploration, référence}
 
-\setcounter{tocdepth}{2}
+\setcounter{tocdepth}{1}
 \tableofcontents
 \newpage
 
@@ -250,16 +251,6 @@ Une période sans fichier d'archive faisait planter la lecture des récits. & La
 
 Pour chaque défaut, j'ai d'abord écrit un test qui reproduit le problème, puis vérifié qu'il échouait sur l'ancien code : 6 des 7 nouveaux tests échouaient, le septième vérifiant seulement qu'un cas normal reste accepté. Un test de correction qui passe déjà avant la correction ne prouve rien.
 
-\subsection{Pour l'oral}
-
-\begin{quote}
-J'ai d'abord construit le pipeline de données. Il réunit deux sources officielles du régulateur : l'export structuré, qui contient l'issue la plus récente de chaque dossier, et une archive qui contient les textes, publiés jusqu'en août 2026. Le tout est relié par l'identifiant de la réclamation. Les fichiers bruts ne sont jamais modifiés, chaque version est tracée par son empreinte, et le jeu de données final est vérifié par des règles explicites.
-
-Ces règles ont servi dès le premier passage : elles ont bloqué le traitement à cause de cinq fiches sans motif. Plutôt que de désactiver la règle, j'ai écarté ces fiches de façon explicite et testée.
-
-L'enseignement principal est ailleurs. Près de 10~\% des réclamations classées «~carte de crédit~» visaient en fait les agences d'évaluation du crédit, avec un taux d'indemnisation quasi nul. Les garder aurait rendu le modèle artificiellement bon. C'est le genre de problème qu'on ne voit qu'en regardant les données réelles avant de modéliser.
-\end{quote}
-
 \section{Intégration continue}
 
 \subsection{Objectif}
@@ -301,14 +292,6 @@ La même exécution affichait un avertissement : la machine \nolinkurl{ubuntu-la
 \end{itemize}
 
 C'est le même principe que le fichier \texttt{uv.lock} pour les bibliothèques Python : savoir exactement ce qui s'exécute, et décider soi-même quand cela change.
-
-\subsection{Pour l'oral}
-
-\begin{quote}
-J'ai mis en place une CI avec GitHub Actions qui relance le lint, le typage strict et les tests à chaque pull request, sur une machine vierge et avec les versions exactes du fichier de verrouillage. La branche principale est protégée : une pull request ne peut pas être fusionnée si un contrôle échoue.
-
-La première exécution a échoué parce que j'avais référencé une version d'action qui n'existait pas. J'ai corrigé en épinglant chaque action sur l'empreinte de son commit et en fixant la version d'Ubuntu, pour la même raison que je verrouille les dépendances Python : un environnement qui change sans prévenir rend les pannes impossibles à reproduire.
-\end{quote}
 
 \section{Exploration des données}
 
@@ -479,14 +462,77 @@ Liste fermée des colonnes, vérifiée par un test & Une réponse publique de la
 \caption{Décisions de l'étape d'exploration}
 \end{table}
 
-\subsection{Pour l'oral}
+\section{Cadre d'évaluation et règle de référence}
 
-\begin{quote}
-Avant de modéliser, j'ai vérifié les hypothèses du cadrage sur les vraies données. La courbe de maturité a confirmé qu'il faut attendre environ 90 jours pour connaître l'issue d'une réclamation ; sans cette règle, le taux d'indemnisation paraît deux fois plus faible sur les dossiers récents.
+\subsection{Objectif}
 
-J'ai aussi retiré 62\,000 réclamations visant des gestionnaires de fichiers de consommateurs, comme Equifax. Ils ne tiennent pas les comptes, une banque ne reçoit pas ces réclamations, et leur taux d'indemnisation quasi nul aurait rendu le modèle artificiellement bon.
+Cette étape construit le cadre qui servira à juger tous les modèles, puis mesure la règle de référence H0 définie au cadrage. Le résultat est la barre que le modèle devra dépasser.
 
-Enfin, en expliquant un pic de janvier 2025, j'ai découvert que 6~\% des récits sont des copies mot pour mot, presque jamais indemnisées. C'est un piège pour le modèle de texte : il faudra l'évaluer en tenant compte de ces copies.
-\end{quote}
+\subsection{Le découpage dans le temps}
+
+Le jeu préparé est coupé en trois périodes qui se suivent.
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{@{}l l r r r@{}}
+\toprule
+Période & Dates de réception & Réclamations & Semaines & Indemnisées \\
+\midrule
+Entraînement & janvier 2022 -- juin 2025 & 349\,695 & 184 & 16,0~\% \\
+Validation & juillet -- décembre 2025 & 74\,768 & 27 & 14,5~\% \\
+Test & janvier -- juillet 2026 & 99\,089 & 29 & 15,2~\% \\
+\bottomrule
+\end{tabular}
+\caption{Les trois périodes du jeu préparé}
+\end{table}
+
+Un découpage au hasard aurait mélangé des réclamations de 2026 dans l'entraînement. Le modèle aurait appris des tendances futures et ses scores auraient été trop optimistes. En production, il prédit toujours le futur à partir du passé : l'évaluation doit faire de même. Le taux d'indemnisation varie d'ailleurs d'une période à l'autre (16,0~\%, 14,5~\%, 15,2~\%), ce qui confirme que les données dérivent.
+
+La validation sert à comparer et à régler les modèles. Le test n'est regardé qu'une seule fois, pour la décision finale de la v0.1. Si on l'utilisait pour ajuster les modèles, il deviendrait une seconde validation et ne mesurerait plus rien d'honnête. C'est pourquoi aucun résultat de test n'apparaît dans cette section.
+
+\subsection{La Capture@10~\% en pratique}
+
+La métrique suit le fonctionnement d'un service réclamations. Chaque semaine, les réclamations reçues sont classées ; l'équipe traite d'abord les 10~\% du haut. La Capture@10~\% est la part des réclamations finalement indemnisées qui se trouvent dans ces 10~\%. Les semaines sont ensuite cumulées : on additionne les dossiers indemnisés captés et les dossiers indemnisés au total.
+
+Un détail compte. La règle H0 donne la même note à toutes les réclamations d'une même catégorie, si bien que beaucoup de dossiers sont ex æquo. Quand un groupe d'ex æquo est coupé par la limite des 10~\%, je ne départage pas au hasard : je compte la part de ses positifs proportionnelle aux places restantes, ce qui donne la valeur moyenne exacte. Un test vérifie qu'un classement où toutes les notes sont égales capte exactement 10~\%, comme le hasard.
+
+L'incertitude est mesurée par bootstrap : on tire au hasard, avec remise, des semaines entières, et on recalcule la Capture à chaque tirage, 2\,000 fois. On tire des semaines et non des réclamations, parce que les réclamations d'une même semaine se ressemblent (le pic de janvier 2025 l'a montré). Pour comparer deux classements, les deux sont recalculés sur les mêmes semaines tirées : c'est l'écart lui-même qui reçoit un intervalle de confiance.
+
+\subsection{La règle H0}
+
+H0 note chaque réclamation par le taux d'indemnisation de sa catégorie (produit, motif et sous-motif) observé sur l'entraînement. Une catégorie rare est rapprochée de sa catégorie parente :
+\[
+\text{taux} = \frac{\text{indemnisées} + m \times \text{taux parent}}{\text{réclamations} + m}, \qquad m = 20.
+\]
+Sans ce lissage, une catégorie vue deux fois avec une indemnisation aurait un taux de 50~\%. Une catégorie jamais vue reçoit le taux de sa catégorie parente.
+
+\subsection{Résultats sur la validation}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{references-validation.png}
+\caption{Capture@10~\% des classements de référence sur la période de validation.}
+\end{figure}
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{@{}l r r r@{}}
+\toprule
+Classement & Capture@10~\% & Intervalle à 95~\% & PR-AUC \\
+\midrule
+Hasard & 10,0~\% & -- & 0,14 \\
+Produit & 11,4~\% & 11,2 -- 11,6 & 0,16 \\
+Produit et motif & 20,2~\% & 19,5 -- 20,8 & 0,23 \\
+H0 : produit, motif et sous-motif & 20,3~\% & 19,4 -- 21,1 & 0,25 \\
+\bottomrule
+\end{tabular}
+\caption{Classements de référence sur la validation (juillet à décembre 2025)}
+\end{table}
+
+H0 capte 20,3~\% des réclamations indemnisées en traitant 10~\% de la file, soit deux fois plus que le hasard. C'est la barre fixée au cadrage : le modèle devra faire au moins 5 points de mieux, soit environ 25~\% de Capture@10~\%, avec un intervalle de confiance qui reste au-dessus de H0.
+
+Le produit seul apporte peu (11,4~\%). Presque tout le gain vient du motif. Le sous-motif ajoute 0,1 point de Capture, avec un intervalle de $-0{,}5$ à $+0{,}7$ point : l'écart est indiscernable de zéro. Il améliore un peu la PR-AUC (0,23 à 0,25), donc le classement sur l'ensemble de la file, mais pas sur les 10~\% du haut.
+
+J'ai aussi fait varier le poids du lissage de 0 à 500. La Capture reste entre 20,3~\% et 20,5~\%. Avec 350\,000 réclamations d'entraînement, presque toutes les catégories sont assez grandes pour que leur taux soit fiable. Le lissage ne crée donc pas de gain ici ; il reste un garde-fou pour les catégories rares ou nouvelles, qui apparaîtront en production.
 
 \end{document}

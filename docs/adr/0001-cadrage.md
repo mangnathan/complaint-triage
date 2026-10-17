@@ -49,19 +49,3 @@ Les données sont réelles, et leurs difficultés aussi : dérive, délai avant 
 En contrepartie, les trois derniers mois ne servent jamais à l'entraînement et le texte n'existe plus en production. La modélisation elle-même a déjà été explorée par d'autres, ce n'est donc pas là que le projet apporte quelque chose de nouveau.
 
 Je m'engage aussi sur trois points pour la v0.1 : une liste fermée des variables connues à la réception, vérifiée par un test ; une table de correspondance entre anciennes et nouvelles catégories de produits ; une analyse par sous-groupe qui peut bloquer la mise en service.
-
-## Pour l'oral (environ 1 min 30)
-
-> Au départ, je voulais utiliser un jeu de tickets de support trouvé sur Kaggle. En le vérifiant avant de coder, je me suis rendu compte que les priorités étaient tirées au hasard : aucun modèle n'aurait pu apprendre quoi que ce soit. Je suis donc parti sur des données réelles, la base publique de réclamations du régulateur financier américain, en me limitant aux cartes et aux comptes bancaires. Ça représente environ 16 000 réclamations par mois, dont 14 % finissent par une indemnisation.
->
-> Le problème métier est simple : un service réclamations traite les dossiers dans l'ordre d'arrivée, et l'objectif est de faire passer devant ceux qui sont fondés. J'ai fixé le critère de succès avant de commencer : la part des dossiers indemnisés qu'on retrouve dans les 10 % traités en priorité. Le modèle doit battre une règle métier simple, pas seulement le hasard. S'il n'y arrive pas, je garde la règle.
->
-> Deux contraintes réelles structurent le projet. L'issue d'un dossier n'est connue qu'après plusieurs semaines. J'ai mesuré qu'il faut environ 90 jours, donc je n'entraîne que sur des dossiers plus anciens. Et en août 2026, le régulateur a arrêté de publier le texte des réclamations, donc mon système doit fonctionner sans texte en production. C'est ce qui en fait un projet de mise en production plutôt qu'un notebook.
-
-## Questions probables en entretien
-
-**Pourquoi ne pas simplement retirer les dossiers encore en cours ?** Les dossiers clos rapidement sont surtout des cas simples. En ne gardant qu'eux, on biaiserait l'échantillon. C'est un problème de censure, comme en analyse de survie.
-
-**Pourquoi 90 jours et pas 60 ?** C'est une première valeur, mesurée sur un seul instantané : moins de 1 % de dossiers sans issue à trois mois. Elle sera affinée en v0.1 avec la courbe complète du taux de dossiers sans issue selon leur âge.
-
-**La variable « établissement » ne pose-t-elle pas problème ?** Si. Pour une seule banque cliente, elle serait constante. Je déciderai de son traitement en v0.1, et l'évaluation sera aussi faite établissement par établissement.

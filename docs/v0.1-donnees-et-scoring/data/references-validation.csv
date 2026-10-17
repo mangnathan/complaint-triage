@@ -1,0 +1,5 @@
+classement,capture_10,capture_10_bas,capture_10_haut,pr_auc
+Hasard,10.0,10.0,10.0,0.14
+Produit,11.41,11.22,11.6,0.16
+Produit x motif,20.16,19.45,20.83,0.23
+H0 : produit x motif x sous-motif,20.27,19.41,21.14,0.25

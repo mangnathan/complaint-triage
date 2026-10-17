@@ -56,6 +56,8 @@ docs/
 scripts/          scripts exécutables (faisabilité, exploration, génération des rapports)
 src/complaint_triage/
   data/           collecte, contrôle, assemblage et préparation des données du CFPB
+  evaluation/     découpage dans le temps, Capture@10 %, intervalles de confiance
+  models/         règle de référence H0, puis les modèles
 tests/            tests automatiques (pytest)
 ```
 
@@ -71,6 +73,7 @@ uv run python -m complaint_triage.data                  # écrit data/interim/co
 uv run python -m complaint_triage.data --refresh-export # même chose avec l'export du jour
 uv run pytest                                           # tests, sans réseau
 uv run python scripts/analysis/explore_dataset.py       # analyses, tableaux et figures de l'exploration
+uv run python scripts/evaluation/evaluate_references.py # classements de référence sur la validation
 ```
 
 Reproduire l'étude de faisabilité et les rapports :
