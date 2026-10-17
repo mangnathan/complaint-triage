@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import io
 import json
+import urllib.error
 from datetime import date
 from pathlib import Path
 from typing import BinaryIO
 
 import pandas as pd
+import pytest
 
+from complaint_triage.data.download import DownloadError
 from complaint_triage.data.pipeline import (
     attach_narratives,
     build_dataset,
@@ -73,5 +76,29 @@ def test_build_dataset_writes_validated_parquet_and_manifest(
     assert manifest["rows"] == 3
     assert manifest["rows_with_narrative"] == 1
     assert manifest["rows_dropped_without_issue"] == 1
+    assert manifest["export_retrieved_at"]
     assert manifest["sources"][0]["url"] == EXPORT_URL
     assert all(len(source["sha256"]) == 64 for source in manifest["sources"])
+
+
+def test_read_narratives_without_any_archive_returns_empty_frame() -> None:
+    narratives = read_narratives([], complaint_ids={1, 2})
+
+    assert narratives.empty
+    assert list(narratives.columns) == ["complaint_id", "narrative"]
+
+
+def test_failed_refresh_keeps_the_cached_export(
+    tmp_path: Path, export_bytes: bytes, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("complaint_triage.data.download.time.sleep", lambda _: None)
+    cached = tmp_path / "raw" / "export" / "complaints.csv.zip"
+    cached.parent.mkdir(parents=True)
+    cached.write_bytes(export_bytes)
+
+    def offline(url: str, timeout: float) -> BinaryIO:
+        raise urllib.error.URLError("hors ligne")
+
+    with pytest.raises(DownloadError):
+        build_dataset(tmp_path, START, refresh_export=True, opener=offline)
+    assert cached.read_bytes() == export_bytes

@@ -36,6 +36,9 @@ class SourceFile:
 @dataclass(frozen=True)
 class Manifest:
     built_at: str
+    # Date de l'export utilisé, distincte de built_at : l'export est réutilisé depuis le cache,
+    # et c'est elle qui détermine quelles issues étaient connues (maturité des labels).
+    export_retrieved_at: str
     start: str
     rows: int
     rows_with_narrative: int
@@ -93,6 +96,11 @@ def read_narratives(paths: Iterable[Path], complaint_ids: set[int]) -> pd.DataFr
                     ids.isin(complaint_ids)
                 ]
             )
+    if not kept:
+        # Aucun fichier d'archive ne couvre la période (début après le 14/08/2026).
+        return pd.DataFrame(
+            {"complaint_id": pd.Series(dtype="int64"), "narrative": pd.Series(dtype="str")}
+        )
     narratives = pd.concat(kept, ignore_index=True)
 
     duplicated = narratives["complaint_id"].duplicated(keep="last")
@@ -124,9 +132,12 @@ def build_dataset(
     """Télécharge les sources, assemble, contrôle et écrit `interim/complaints.parquet`."""
     raw_dir = data_dir / "raw"
     export_path = raw_dir / "export" / "complaints.csv.zip"
-    if refresh_export:
-        # L'export change chaque jour : les issues des dossiers récents évoluent.
-        export_path.unlink(missing_ok=True)
+    if refresh_export and export_path.exists():
+        # L'export change chaque jour : les issues des dossiers récents évoluent. Le nouveau
+        # fichier remplace l'ancien seulement s'il est complet, sinon le cache reste utilisable.
+        fresh = export_path.with_name("complaints.fresh.csv.zip")
+        fresh.unlink(missing_ok=True)
+        download(EXPORT_URL, fresh, opener=opener).replace(export_path)
 
     sources = [(EXPORT_URL, download(EXPORT_URL, export_path, opener=opener))]
     for archive_file in archive_files_since(start):
@@ -145,6 +156,9 @@ def build_dataset(
 
     manifest = Manifest(
         built_at=datetime.now(UTC).isoformat(timespec="seconds"),
+        export_retrieved_at=datetime.fromtimestamp(export_path.stat().st_mtime, UTC).isoformat(
+            timespec="seconds"
+        ),
         start=start.isoformat(),
         rows=len(dataset),
         rows_with_narrative=int(dataset["narrative"].notna().sum()),
