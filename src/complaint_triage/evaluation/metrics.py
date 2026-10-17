@@ -49,10 +49,22 @@ def capture_by_group(
     labels: npt.ArrayLike,
     groups: npt.ArrayLike,
     share: float = DEFAULT_SHARE,
+    queues: npt.ArrayLike | None = None,
 ) -> pd.DataFrame:
-    """Positifs captés et positifs totaux pour chaque groupe (une semaine de réclamations)."""
+    """Positifs captés et positifs totaux pour chaque groupe (une semaine de réclamations).
+
+    Avec `queues`, le classement se fait séparément dans chaque file (un établissement) : chaque
+    banque traite en priorité 10 % de sa propre file. Les résultats des files sont ensuite
+    additionnés par groupe. Sans `queues`, toutes les réclamations forment une seule file.
+    """
+    labels_arr = np.asarray(labels)
     frame = pd.DataFrame(
-        {"score": np.asarray(scores), "label": np.asarray(labels), "group": np.asarray(groups)}
+        {
+            "score": np.asarray(scores),
+            "label": labels_arr,
+            "group": np.asarray(groups),
+            "queue": np.zeros(len(labels_arr)) if queues is None else np.asarray(queues),
+        }
     )
     rows = [
         {
@@ -60,9 +72,9 @@ def capture_by_group(
             "captured": expected_captured(part["score"], part["label"], share * len(part)),
             "positives": float(part["label"].sum()),
         }
-        for group, part in frame.groupby("group", sort=True)
+        for (group, _), part in frame.groupby(["group", "queue"], sort=True)
     ]
-    return pd.DataFrame(rows)
+    return pd.DataFrame(rows).groupby("group", sort=True, as_index=False).sum()
 
 
 def capture_at(
@@ -70,11 +82,12 @@ def capture_at(
     labels: npt.ArrayLike,
     groups: npt.ArrayLike | None = None,
     share: float = DEFAULT_SHARE,
+    queues: npt.ArrayLike | None = None,
 ) -> float:
-    """Capture@share, calculée groupe par groupe puis cumulée sur tous les groupes."""
+    """Capture@share, calculée groupe par groupe (et file par file) puis cumulée."""
     labels_arr = np.asarray(labels)
     groups_arr = np.zeros(len(labels_arr)) if groups is None else np.asarray(groups)
-    table = capture_by_group(scores, labels_arr, groups_arr, share)
+    table = capture_by_group(scores, labels_arr, groups_arr, share, queues)
     return float(table["captured"].sum() / table["positives"].sum())
 
 
