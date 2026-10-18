@@ -9,6 +9,8 @@ from complaint_triage.evaluation.metrics import (
     capture_at,
     capture_by_group,
     expected_captured,
+    pr_auc,
+    pr_auc_in_queues,
     selection_in_queues,
     selection_probability,
 )
@@ -59,6 +61,27 @@ def test_each_queue_gives_priority_to_its_own_share() -> None:
     assert probability[:10].sum() == pytest.approx(1)
     assert probability[10:].sum() == pytest.approx(3)
     assert probability[9] == 1  # meilleure note de A, même si toutes celles de B sont plus hautes
+
+
+def test_pr_auc_in_queues_ignores_differences_between_queues() -> None:
+    # Dans chaque file, le positif a la meilleure note : classement parfait file par file.
+    # Mélangées, les notes élevées de la file A, sans positif utile, passent devant.
+    scores = [0.9, 0.8, 0.7, 0.3, 0.2, 0.1]
+    labels = [1, 0, 0, 1, 0, 0]
+    queues = ["A", "A", "A", "B", "B", "B"]
+
+    assert pr_auc_in_queues(scores, labels, queues) == pytest.approx(1.0)
+    assert pr_auc(scores, labels) < 1.0
+
+
+def test_pr_auc_in_queues_skips_queues_that_cannot_be_ranked() -> None:
+    scores = [0.9, 0.1, 0.5, 0.4]
+    labels = [1, 0, 0, 0]  # la file B n'a aucun positif
+    queues = ["A", "A", "B", "B"]
+
+    assert pr_auc_in_queues(scores, labels, queues) == pytest.approx(1.0)
+    with pytest.raises(ValueError, match="Aucune file"):
+        pr_auc_in_queues([0.5, 0.4], [0, 0], ["B", "B"])
 
 
 def test_capture_is_computed_week_by_week_then_pooled() -> None:

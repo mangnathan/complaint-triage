@@ -1,0 +1,16 @@
+{
+  "modele_retenu": "H0 propre à la banque",
+  "ecart_xgboost_points": -0.47,
+  "ecart_xgboost_intervalle": [
+    -0.81,
+    -0.15
+  ],
+  "equite_respectee": true,
+  "calibration_respectee": true,
+  "mise_en_service_possible": true,
+  "texte_garde": true,
+  "gain_pr_auc_texte": 0.0628,
+  "reclamations_test": 99089,
+  "recits_test_jamais_vus": 40412,
+  "arbres_xgboost": 858
+}

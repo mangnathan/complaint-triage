@@ -1,0 +1,4 @@
+modele,reclamations,capture,capture_bas,capture_haut,gain,gain_bas,gain_haut,pr_auc_dans_les_files,gain_pr_auc_dans_les_files,pr_auc_banques_melangees
+H0 propre à la banque,40412,16.826,16.342,17.314,0.0,0.0,0.0,0.353,0.0,0.383
+XGBoost retenu,40412,16.259,15.62,16.853,-0.567,-1.077,-0.003,0.359,0.006,0.375
+TF-IDF (texte seul),40412,19.376,18.655,20.119,2.55,1.811,3.362,0.416,0.063,0.391

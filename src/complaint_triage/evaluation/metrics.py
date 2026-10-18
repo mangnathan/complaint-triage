@@ -123,6 +123,25 @@ def pr_auc(scores: npt.ArrayLike, labels: npt.ArrayLike) -> float:
     return float(average_precision_score(np.asarray(labels), np.asarray(scores)))
 
 
+def pr_auc_in_queues(scores: npt.ArrayLike, labels: npt.ArrayLike, queues: npt.ArrayLike) -> float:
+    """PR-AUC calculée dans chaque file, puis moyenne pondérée par le nombre de positifs.
+
+    Comme la Capture, elle ne récompense pas un modèle qui devine la file d'une réclamation. Une
+    file sans positif, ou sans négatif, ne peut pas être classée et ne compte pas.
+    """
+    scores_arr, labels_arr = np.asarray(scores, dtype=float), np.asarray(labels, dtype=float)
+    queues_arr = np.asarray(queues)
+    total, weight = 0.0, 0.0
+    for rows in pd.Series(queues_arr).groupby(queues_arr, sort=False).indices.values():
+        positives = labels_arr[rows].sum()
+        if 0 < positives < len(rows):
+            total += positives * pr_auc(scores_arr[rows], labels_arr[rows])
+            weight += positives
+    if weight == 0:
+        raise ValueError("Aucune file ne contient à la fois des positifs et des négatifs.")
+    return total / weight
+
+
 def bootstrap_capture(
     by_group: pd.DataFrame,
     *,

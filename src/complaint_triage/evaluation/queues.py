@@ -20,3 +20,9 @@ def queue_of(frame: pd.DataFrame) -> npt.NDArray[np.int64]:
     """Numéro de file de chaque réclamation : un par couple établissement et produit."""
     groups = frame.groupby(list(QUEUE_COLUMNS), sort=True, observed=True)
     return np.asarray(groups.ngroup(), dtype=np.int64)
+
+
+def weekly_queue_of(frame: pd.DataFrame) -> npt.NDArray[np.int64]:
+    """Numéro de file hebdomadaire : chaque semaine, une file par banque et par produit."""
+    groups = frame.groupby(["semaine", *QUEUE_COLUMNS], sort=True, observed=True)
+    return np.asarray(groups.ngroup(), dtype=np.int64)

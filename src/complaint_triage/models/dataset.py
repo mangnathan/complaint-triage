@@ -9,12 +9,16 @@ import pandas as pd
 
 from complaint_triage.data.pipeline import load_interim
 from complaint_triage.data.prepare import prepare_for_modeling
-from complaint_triage.evaluation.split import TRAIN, assign_period, week_of
+from complaint_triage.evaluation.split import TRAIN, VALIDATION, assign_period, week_of
 from complaint_triage.models.features import volume_features
 
 # Les trois derniers mois de l'entraînement servent à arrêter l'apprentissage des modèles :
 # la validation reste réservée à la comparaison.
 STOP_START = date(2025, 4, 1)
+# Pour la décision finale, les modèles retenus sont réentraînés sur l'entraînement et la
+# validation réunis, avec les mêmes réglages ; le jeu d'arrêt glisse aux trois derniers mois.
+FINAL_PERIODS = (TRAIN, VALIDATION)
+FINAL_STOP_START = date(2025, 10, 1)
 
 
 def load_modeling_frame(data_dir: Path) -> pd.DataFrame:
@@ -30,8 +34,12 @@ def load_modeling_frame(data_dir: Path) -> pd.DataFrame:
     return prepared
 
 
-def split_training(frame: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Coupe la période d'entraînement en une partie d'apprentissage et une partie d'arrêt."""
-    train = frame[frame["periode"] == TRAIN]
-    stop = train["date_received"] >= pd.Timestamp(STOP_START)
+def split_training(
+    frame: pd.DataFrame,
+    periods: tuple[str, ...] = (TRAIN,),
+    stop_start: date = STOP_START,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Coupe les périodes d'apprentissage en une partie d'apprentissage et une partie d'arrêt."""
+    train = frame[frame["periode"].isin(periods)]
+    stop = train["date_received"] >= pd.Timestamp(stop_start)
     return train[~stop], train[stop]
