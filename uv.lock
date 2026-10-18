@@ -579,6 +579,7 @@ name = "complaint-triage"
 version = "0.0.0"
 source = { editable = "." }
 dependencies = [
+    { name = "defusedxml" },
     { name = "matplotlib" },
     { name = "mlflow" },
     { name = "pandas" },
@@ -595,10 +596,12 @@ dev = [
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "ruff" },
+    { name = "types-defusedxml" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "defusedxml", specifier = ">=0.7.1" },
     { name = "matplotlib", specifier = ">=3.9" },
     { name = "mlflow", specifier = ">=3" },
     { name = "pandas", specifier = ">=2.2" },
@@ -615,6 +618,7 @@ dev = [
     { name = "pre-commit", specifier = ">=4.3" },
     { name = "pytest", specifier = ">=8.4" },
     { name = "ruff", specifier = ">=0.13" },
+    { name = "types-defusedxml", specifier = ">=0.7.0.20260504" },
 ]
 
 [[package]]
@@ -782,6 +786,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/dd/e3/ccd9ac5a7a482d7c439f90241facd68b5d59f3d9178093d242bcee96a371/databricks_sdk-0.153.0.tar.gz", hash = "sha256:db0f0dc6d60128d39bb9ee219c6991de04b34ce46a04293ac30108332725f4be", size = 1159212, upload-time = "2026-10-15T11:30:37.491Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/90/4c/0f687a62b9ae72376e3ed4152260fe4abee29d26c3978fc37ec7c2881fc8/databricks_sdk-0.153.0-py3-none-any.whl", hash = "sha256:5f813d98cf704c20371f940a22ee00975e61e9d255bc02ca0e6f46551e86723e", size = 1102624, upload-time = "2026-10-15T11:30:35.818Z" },
+]
+
+[[package]]
+name = "defusedxml"
+version = "0.7.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/0f/d5/c66da9b79e5bdb124974bfe172b4daf3c984ebd9c2a06e2b8a4dc7331c72/defusedxml-0.7.1.tar.gz", hash = "sha256:1bb3032db185915b62d7c6209c5a8792be6a32ab2fedacc84e01b52c51aa3e69", size = 75520, upload-time = "2021-03-08T10:59:26.269Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/07/6c/aa3f2f849e01cb6a001cd8554a88d4c77c5c1a31c95bdf1cf9301e6d9ef4/defusedxml-0.7.1-py2.py3-none-any.whl", hash = "sha256:a352e7e428770286cc899e2542b6cdaedb2b4953ff269a210103ec58f6198a61", size = 25604, upload-time = "2021-03-08T10:59:24.45Z" },
 ]
 
 [[package]]
@@ -2996,6 +3009,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/b4/de/4420db493fa8fc0856d5e5c1b159c63a323d2de2317babe36b01568928e8/typeguard-4.6.0.tar.gz", hash = "sha256:e7414f09111317de3e335de92cd397c5c0ca00b1cc1676de12e1d444a79b3f21", size = 82330, upload-time = "2026-07-26T08:40:23.207Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8f/eb/461d5f167b6f5c7d97696f397c82f82e3480e003fce3f0a1cd1dd26e2eb2/typeguard-4.6.0-py3-none-any.whl", hash = "sha256:79878165bb86f2cf5d41d159a0ff1792a796cf496882d2fe1b1c6c7049b9cdd7", size = 36884, upload-time = "2026-07-26T08:40:21.868Z" },
+]
+
+[[package]]
+name = "types-defusedxml"
+version = "0.7.0.20260504"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/da/d2/4553c8fa9cdebfe1e84b950cf790a4d2376a97fa016e43f7c65323fa6c7d/types_defusedxml-0.7.0.20260504.tar.gz", hash = "sha256:2ab2828a3f97111ba1c16cee273ad4124a831fc9198c41bf8368ff6ea48ad300", size = 10729, upload-time = "2026-05-04T05:22:50.192Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bf/2d/8a4b5ba1d732b8bc691f0efbb1c6f77cb5f6f473b2afe181d83d910773c5/types_defusedxml-0.7.0.20260504-py3-none-any.whl", hash = "sha256:a959e3a0a43b93e464bd625d91ec9193a2703ddc10443bdd627792485fae0b10", size = 13467, upload-time = "2026-05-04T05:22:49.319Z" },
 ]
 
 [[package]]
