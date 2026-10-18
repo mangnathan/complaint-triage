@@ -34,7 +34,11 @@ from complaint_triage.evaluation.calibration import (
     expected_calibration_error,
     reliability_table,
 )
-from complaint_triage.evaluation.fairness import FAIRNESS_RANGE, compare_subgroup
+from complaint_triage.evaluation.fairness import (
+    FAIRNESS_RANGE,
+    cadrage_subgroups,
+    compare_subgroup,
+)
 from complaint_triage.evaluation.metrics import (
     bootstrap_capture,
     capture_by_group,
@@ -61,18 +65,6 @@ XGBOOST = "XGBoost retenu"
 ALL = "Toutes les réclamations"
 BY_BANK = "Une file par banque"
 BY_PRODUCT = "Une file par banque et produit"
-
-
-def subgroups(validation: pd.DataFrame) -> dict[str, npt.NDArray[np.bool_]]:
-    """Sous-groupes du cadrage, chacun comparé à toutes les autres réclamations."""
-    tags = validation["tags"].fillna("")
-    product = validation["product"]
-    return {
-        "Older American": tags.str.contains("Older American").to_numpy(),
-        "Servicemember": tags.str.contains("Servicemember").to_numpy(),
-        "Cartes de crédit": (product == "Credit card").to_numpy(),
-        "Comptes courants et d'épargne": (product == "Checking or savings account").to_numpy(),
-    }
 
 
 def fairness_rows(
@@ -270,7 +262,7 @@ def main() -> None:
         BY_BANK: np.asarray(validation.groupby("company", sort=True).ngroup(), dtype=np.int64),
         BY_PRODUCT: queue_of(validation),
     }
-    groups = subgroups(validation)
+    groups = cadrage_subgroups(validation)
     fairness = pd.DataFrame(
         [
             row

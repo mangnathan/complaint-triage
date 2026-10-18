@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import numpy as np
+import pandas as pd
 import pytest
 
-from complaint_triage.evaluation.fairness import compare_subgroup
+from complaint_triage.evaluation.fairness import cadrage_subgroups, compare_subgroup
 from complaint_triage.evaluation.metrics import selection_in_queues
 
 
@@ -35,6 +36,21 @@ def test_a_ranking_that_pushes_a_group_back_gives_a_ratio_below_one() -> None:
     assert result.capture_rest > 0.5
     assert not result.within_range
     assert result.ratio.low <= result.ratio.estimate <= result.ratio.high
+
+
+def test_a_complaint_with_both_tags_counts_in_both_groups() -> None:
+    frame = pd.DataFrame(
+        {
+            "tags": ["Older American, Servicemember", None, "Servicemember"],
+            "product": ["Credit card", "Checking or savings account", "Credit card"],
+        }
+    )
+
+    groups = cadrage_subgroups(frame)
+
+    assert list(groups["Older American"]) == [True, False, False]
+    assert list(groups["Servicemember"]) == [True, False, True]
+    assert list(groups["Cartes de crédit"]) == [True, False, True]
 
 
 def test_a_group_without_positive_is_refused() -> None:

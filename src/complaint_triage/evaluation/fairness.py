@@ -14,6 +14,21 @@ from complaint_triage.evaluation.metrics import Interval
 FAIRNESS_RANGE = (0.8, 1.25)
 
 
+def cadrage_subgroups(frame: pd.DataFrame) -> dict[str, npt.NDArray[np.bool_]]:
+    """Sous-groupes fixés au cadrage, chacun comparé à toutes les autres réclamations.
+
+    Une réclamation qui porte les deux étiquettes compte dans les deux groupes.
+    """
+    tags = frame["tags"].fillna("")
+    product = frame["product"]
+    return {
+        "Older American": tags.str.contains("Older American").to_numpy(),
+        "Servicemember": tags.str.contains("Servicemember").to_numpy(),
+        "Cartes de crédit": (product == "Credit card").to_numpy(),
+        "Comptes courants et d'épargne": (product == "Checking or savings account").to_numpy(),
+    }
+
+
 @dataclass(frozen=True)
 class SubgroupCapture:
     capture_group: float
