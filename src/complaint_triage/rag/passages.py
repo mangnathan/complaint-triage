@@ -8,6 +8,7 @@ n'importe qui peut ouvrir sur le site de l'eCFR.
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 
 import pandas as pd
@@ -16,10 +17,17 @@ from complaint_triage.rag.ecfr import CORPUS_DATE, ECFR_TITLE, RegulationPart, S
 
 # Au-delà, un paragraphe est coupé en plusieurs passages, à la limite d'un alinéa.
 MAX_WORDS = 350
-_TOP_LEVEL = re.compile(r"^\(([a-z])\)\s")
-# Ces lettres sont aussi des chiffres romains : « (i) » ouvre souvent une sous-liste.
-_ROMAN_LETTERS = frozenset("ivx")
-# Un paragraphe de premier niveau porte presque toujours un titre : « (b) Notice of error— ».
+# « (a) Texte » ou « (a)(1) Texte » : la lettre peut être suivie directement d'un sous-niveau.
+_TOP_LEVEL = re.compile(r"^\(([a-z])\)(?=\s|\()")
+# Ces lettres sont aussi des chiffres romains. Leurs voisins en chiffres romains permettent de
+# trancher : « (v) » après « (iv) », ou « (i) » suivi de « (ii) », appartiennent à une liste.
+_ROMAN_NEIGHBOURS: dict[str, tuple[str | None, str]] = {
+    "i": (None, "ii"),
+    "v": ("iv", "vi"),
+    "x": ("ix", "xi"),
+}
+_ROMAN_MARKER = re.compile(r"^\(([ivx]+)\)")
+# Un paragraphe de premier niveau porte souvent un titre : « (b) Notice of error— ».
 _RESERVED = re.compile(r"(\([a-z]\)\s*)?\[Reserved\]\.?")
 _HEADED = re.compile(r"^\([a-z]\)\s+[A-Z][^.—]{0,80}(—|\.\s)")
 
@@ -35,11 +43,37 @@ class Passage:
     url: str
 
 
-def top_level_letter(paragraph: str, previous: str | None) -> str | None:
+def _first_marker(following: Sequence[str], candidates: tuple[str, str]) -> str | None:
+    """Premier des deux marqueurs qui ouvre un des paragraphes suivants."""
+    for paragraph in following:
+        for marker in candidates:
+            if paragraph.startswith(marker):
+                return marker
+    return None
+
+
+def _last_roman_marker(preceding: Sequence[str]) -> str | None:
+    """Dernier marqueur en chiffres romains, « (iv) » par exemple, dans les alinéas précédents."""
+    for paragraph in reversed(preceding):
+        match = _ROMAN_MARKER.match(paragraph)
+        if match is not None:
+            return match.group(1)
+    return None
+
+
+def top_level_letter(
+    paragraph: str,
+    previous: str | None,
+    following: Sequence[str] = (),
+    preceding: Sequence[str] = (),
+) -> str | None:
     """Lettre du paragraphe s'il ouvre un paragraphe de premier niveau, sinon None.
 
-    La lettre doit suivre la précédente dans l'alphabet. Pour i, v et x, qui sont aussi des
-    chiffres romains, le paragraphe doit en plus porter un titre.
+    La lettre doit suivre la précédente dans l'alphabet. i, v et x sont aussi des chiffres
+    romains. Un « (v) » romain suit forcément un « (iv) », un « (x) » romain un « (ix) ». Ensuite,
+    on regarde la suite : si « (ii) » vient avant « (j) », « (i) » ouvrait une liste ; si « (j) »
+    vient d'abord, c'était une lettre. Sans indice (fin de section), un « (i) » doit porter un
+    titre pour compter comme lettre.
     """
     match = _TOP_LEVEL.match(paragraph)
     if match is None:
@@ -48,17 +82,31 @@ def top_level_letter(paragraph: str, previous: str | None) -> str | None:
     expected = "a" if previous is None else chr(ord(previous) + 1)
     if letter != expected:
         return None
-    if letter in _ROMAN_LETTERS and not _HEADED.match(paragraph):
+    if letter not in _ROMAN_NEIGHBOURS:
+        return letter
+    roman_before, roman_after = _ROMAN_NEIGHBOURS[letter]
+    if roman_before is not None and _last_roman_marker(preceding) == roman_before:
         return None
-    return letter
+    roman_next, letter_next = f"({roman_after})", f"({chr(ord(letter) + 1)})"
+    first = _first_marker(following, (roman_next, letter_next))
+    if first == roman_next:
+        return None
+    if first == letter_next or roman_before is not None:
+        return letter
+    return letter if _HEADED.match(paragraph) else None
 
 
 def _groups(section: Section) -> list[tuple[str | None, list[str]]]:
     """Paragraphes regroupés par lettre de premier niveau ; None pour le texte d'introduction."""
     groups: list[tuple[str | None, list[str]]] = [(None, [])]
     current: str | None = None
-    for paragraph in section.paragraphs:
-        letter = top_level_letter(paragraph, current)
+    for index, paragraph in enumerate(section.paragraphs):
+        letter = top_level_letter(
+            paragraph,
+            current,
+            following=section.paragraphs[index + 1 :],
+            preceding=section.paragraphs[:index],
+        )
         if letter is not None:
             current = letter
             groups.append((letter, []))
