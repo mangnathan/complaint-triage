@@ -4,6 +4,9 @@ Les évolutions notables du projet sont notées ici, selon le format [Keep a Cha
 
 ## [Non publié]
 
+### Ajouté
+- Corpus réglementaire du RAG (`complaint_triage.rag`, commande `python -m complaint_triage.rag`) : Regulation E (sous-partie A), Regulation Z (sous-parties B et G) et Regulation DD, téléchargées depuis l'API officielle de l'eCFR dans leur version du 15 octobre 2026, lues avec defusedxml et découpées en 366 passages citables, un par paragraphe de premier niveau (« 12 CFR 1005.11(b) »), avec un lien vers le texte officiel et un manifeste des sources.
+
 ## [v0.1] - 2026-10-18
 
 Décision de fin de version ([ADR 0002](docs/adr/0002-moteur-de-priorisation.md)) : sur la période de test, XGBoost ne bat pas la règle H0 propre à chaque banque (17,0 % de Capture@10 % contre 17,4 %, écart de −0,5 point [−0,8 ; −0,1]). La règle est retenue comme moteur de priorisation. Elle respecte les seuils d'équité (rapports de 0,93 à 1,12) et de calibration (ECE de 0,024). Le texte atteint son critère (+0,063 de PR-AUC) et reste un composant optionnel, faute de récits publiés depuis août 2026.

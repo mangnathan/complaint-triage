@@ -1,0 +1,109 @@
+\documentclass[11pt,a4paper]{article}
+
+\newcommand{\rapporttitre}{RAG}
+\newcommand{\rapportversion}{v0.2}
+\input{../latex/preambule}
+\usepackage{microtype}
+
+\begin{document}
+
+\pagedegarde{Réponses appuyées sur les textes réglementaires, avec citations ou refus}{Version de travail, octobre 2026}{Étape 1 sur 5 rédigée}
+
+\setcounter{tocdepth}{1}
+\tableofcontents
+\newpage
+
+\section{Objectif et critères}
+
+\subsection{Ce que doit faire le RAG}
+
+Un chargé de réclamations a souvent besoin d'une règle précise : le délai dont dispose la banque pour enquêter sur une transaction contestée, le montant que le client peut devoir en cas de carte perdue, ce que la banque doit écrire dans sa réponse. Le RAG (\emph{Retrieval-Augmented Generation}) répond à ces questions en deux temps. Il retrouve d'abord les passages des textes qui traitent de la question, puis un modèle de langage rédige une réponse à partir de ces seuls passages, en citant chacun de ceux qu'il utilise. S'il ne trouve rien de fiable, il refuse et le dit.
+
+Le refus est une fonction à part entière. Le cadrage l'a relevé (problème P5) : un outil d'IA générative peut inventer une réponse, et une banque ne peut pas accepter ce risque. Une réponse sans source vérifiable ne doit jamais atteindre le chargé de réclamations.
+
+\subsection{Critères fixés au cadrage}
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}Y l@{}}
+\toprule
+Critère & Seuil \\
+\midrule
+Réponses qui citent au moins une source vérifiable & 100~\% \\
+Refus sur des questions hors du corpus (jeu de test dédié) & Au moins 95~\% \\
+\bottomrule
+\end{tabularx}
+\caption{Critères de la v0.2 (rapport de cadrage, section 7)}
+\end{table}
+
+Une source est vérifiable si le passage cité existe dans le corpus, si le texte cité s'y trouve mot pour mot, et si un lien ouvre le texte officiel au paragraphe cité. Ces trois conditions sont contrôlées par le code, pas par le modèle de langage.
+
+\subsection{Organisation}
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}l Y@{}}
+\toprule
+Étape & Contenu \\
+\midrule
+1 & Corpus : collecte et découpage des textes réglementaires \\
+2 & Recherche : index et mesure de la recherche, sans modèle de langage \\
+3 & Génération : réponse avec citations vérifiées, ou refus \\
+4 & Évaluation : questions dans le corpus et hors du corpus \\
+5 & Bilan, rapport et note de décision \\
+\bottomrule
+\end{tabularx}
+\caption{Étapes de la v0.2}
+\end{table}
+
+Le modèle de langage est Gemini, de Google, dans un modèle Flash de l'offre gratuite. Le code passe par une interface commune : changer de fournisseur ne demande qu'un adaptateur. Les tests automatiques utilisent un faux modèle et tournent sans clé ni réseau.
+
+\section{Le corpus}
+
+\subsection{Quels textes}
+
+Le corpus réunit les règles fédérales américaines qui encadrent les deux produits du projet. Elles s'appliquent aux réclamations de la base du CFPB, et le CFPB est lui-même chargé de les faire respecter.
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}l l Y r@{}}
+\toprule
+Texte & Partie & Ce qu'il encadre & Passages \\
+\midrule
+Regulation E & 12 CFR 1005, sous-partie A & Transferts électroniques de fonds, dont la résolution des erreurs et la responsabilité du client en cas d'opération non autorisée & 124 \\
+Regulation Z & 12 CFR 1026, sous-parties B et G & Crédit renouvelable et cartes de crédit, dont les contestations de facturation & 196 \\
+Regulation DD & 12 CFR 1030 & Information due au client sur les comptes de dépôt & 46 \\
+\bottomrule
+\end{tabularx}
+\caption{Les textes du corpus}
+\end{table}
+
+Ces textes sont publics et libres de droits. Ils viennent de l'API officielle de l'eCFR, la version électronique du code des règlements fédéraux, qui ne demande ni compte ni clé.
+
+Je n'ai pas retenu les interprétations officielles (\emph{Official Interpretations}) publiées en annexe de chaque texte. Elles sont utiles mais très longues : celles de la Regulation Z dépassent à elles seules le reste du corpus. Commencer par le texte de la règle permet de mesurer d'abord ce que la recherche sait faire sur un corpus net. Elles pourront être ajoutées ensuite, si l'évaluation montre des questions qu'elles seules couvrent.
+
+\subsection{Un texte figé à une date}
+
+Le corpus est téléchargé dans sa version du 15 octobre 2026, date inscrite dans le code. Une citation renvoie donc toujours au même texte, et le lien vers le site de l'eCFR ouvre cette version précise. Mettre le corpus à jour est une décision explicite : changer la date, reconstruire, relancer l'évaluation. Un manifeste garde la date, l'adresse et l'empreinte SHA-256 de chaque fichier source, comme pour les données de la v0.1.
+
+\subsection{Lire le XML sans risque}
+
+L'eCFR fournit les textes en XML. Lire un XML venu d'Internet avec le lecteur standard de Python expose à des fichiers piégés, par exemple des entités qui se démultiplient jusqu'à saturer la mémoire. Le corpus est lu avec \texttt{defusedxml}, qui refuse ces constructions ; un test vérifie qu'un tel fichier est rejeté. L'API exige aussi une réponse compressée : le fichier est enregistré tel quel, puis décompressé à la lecture.
+
+\subsection{Le découpage en passages}
+
+La recherche ne travaille pas sur des sections entières, souvent longues de plusieurs pages, mais sur des passages. Le découpage suit la structure du texte : un passage par paragraphe de premier niveau, « (a) », « (b) »... La citation d'un passage, comme « 12 CFR 1005.11(c) », désigne alors un endroit précis que n'importe qui peut ouvrir et vérifier.
+
+Deux difficultés ont demandé des règles explicites, chacune couverte par un test :
+\begin{itemize}
+  \item \textbf{les lettres qui sont aussi des chiffres romains.} « (i) » peut ouvrir le paragraphe (i) d'une section, ou le premier élément d'une liste numérotée en chiffres romains. Une lettre n'ouvre un paragraphe que si elle suit la précédente dans l'alphabet ; pour i, v et x, le paragraphe doit en plus porter un titre, comme c'est l'usage dans ces textes ;
+  \item \textbf{les paragraphes trop longs.} Au-delà de 350 mots, un paragraphe est coupé en plusieurs passages, toujours entre deux alinéas et jamais au milieu d'une phrase. Les morceaux gardent la même citation.
+\end{itemize}
+
+Les paragraphes abrogés (« [Reserved] ») sont retirés : ils n'ont rien à citer. C'est pourquoi la section 1030.10, entièrement abrogée, n'apparaît pas.
+
+\subsection{Résultat}
+
+Le corpus compte 366 passages issus de 53 sections, pour environ 72\,000 mots. Un passage fait 193 mots en médiane et 356 au plus. J'ai vérifié que, dans chaque section, les lettres des passages se suivent sans saut ; la section 1026.13, sur les contestations de facturation, va bien de (a) à (i), comme le texte officiel.
+
+\end{document}
