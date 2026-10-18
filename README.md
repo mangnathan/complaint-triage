@@ -8,9 +8,22 @@ Un service réclamations traite en général ses dossiers dans l'ordre d'arrivé
 
 Le projet est pensé pour fonctionner en continu, pas comme une étude ponctuelle. Depuis le 14 août 2026, le CFPB ne publie plus le texte des réclamations. Le modèle de production doit donc se passer du texte, attendre que les issues soient connues avant d'apprendre, et être évalué en permanence sur les décisions réelles des banques.
 
-Statut actuel : v0.1 terminée. Le moteur de priorisation est choisi, sur une période de test ouverte une seule fois ; la v0.2 (RAG) est la prochaine étape.
+Statut actuel : v0.2 terminée. Le moteur de priorisation est choisi (v0.1), et un assistant répond aux questions de réglementation en citant ses sources, ou refuse (v0.2). La v0.3 (agent) est la prochaine étape.
 
-## Résultat de la v0.1
+## Résultat de la v0.2 : réponses avec citations, ou refus
+
+Le chargé de réclamations pose une question (« Combien de temps la banque a-t-elle pour enquêter sur une opération contestée ? »). L'assistant retrouve les passages utiles dans les Regulations E, Z et DD, et Gemini répond en citant un extrait exact pour chaque affirmation. **Le code vérifie chaque citation mot pour mot** : une seule citation invérifiable, et toute la réponse est refusée.
+
+| Critère fixé au cadrage | Seuil | Sur le test |
+|---|---|---|
+| Réponses qui citent au moins une source vérifiable | 100 % | **100 %** (13 / 13) |
+| Refus sur des questions hors du corpus | 95 % | **100 %** (20 / 20, tentatives de détournement comprises) |
+
+- **Aucune réponse ne cite une mauvaise source.** En contrepartie, l'assistant est prudent : il refuse 7 questions de test sur 20 auxquelles il aurait pu répondre. L'analyse de ces refus est dans le [rapport v0.2](docs/pdf/complaint-triage_v0.2_Rapport-RAG.pdf).
+- **La recherche a été mesurée seule, avant tout modèle de langage** : la recherche par le sens (embeddings calculés en local) trouve un bon passage dans les 5 premiers pour 85 % des questions de test, contre 45 % pour les mots-clés. La recherche hybride, souvent recommandée, fait moins bien ici (75 %).
+- **Gratuit, sous plafond.** Gemini 3.5 Flash-Lite sur l'offre gratuite, dans un projet sans facturation ; cache des réponses et plafond d'appels codé sous la limite gratuite. Toute l'évaluation a tenu en 122 appels.
+
+## Résultat de la v0.1 : le moteur de priorisation
 
 Sur la période de test (janvier à juillet 2026, 99 089 réclamations), chaque banque traitant d'abord 10 % de la file de chaque produit :
 
@@ -67,7 +80,7 @@ Avant toute mise en service, deux contrôles fixés au cadrage doivent être pas
 |---|---|---|
 | v0.0 Cadrage | Contexte, besoins, étude de faisabilité, seuils de décision | terminé |
 | v0.1 Données et scoring | Collecte automatisée, contrôles, exploration, règle de référence, XGBoost, modèle de langage, analyse par sous-groupe | terminé |
-| v0.2 RAG | Réponses avec citations, ou refus | à venir |
+| v0.2 RAG | Réponses avec citations, ou refus | terminé |
 | v0.3 Agent | Planification, outils SQL paramétrés et webhook, refus argumentés | à venir |
 | v0.4 Qualité | Tests par outil, 20 à 25 scénarios d'évaluation en CI | à venir |
 | v0.5 Industrialisation | Docker, CI/CD avec GitHub Actions | à venir |
@@ -81,6 +94,7 @@ Chaque version est livrée avec un rapport en PDF (source LaTeX dans le dépôt)
 |---|---|---|
 | v0.0 | [Rapport de cadrage](docs/pdf/complaint-triage_v0.0_Rapport-de-cadrage.pdf) ([source](docs/v0.0-cadrage/v0.0-rapport-de-cadrage.tex)) | [ADR 0001](docs/adr/0001-cadrage.md) |
 | v0.1 | [Rapport données et scoring](docs/pdf/complaint-triage_v0.1_Rapport-donnees-et-scoring.pdf) ([source](docs/v0.1-donnees-et-scoring/v0.1-rapport-donnees-et-scoring.tex)) | [ADR 0002](docs/adr/0002-moteur-de-priorisation.md) |
+| v0.2 | [Rapport RAG](docs/pdf/complaint-triage_v0.2_Rapport-RAG.pdf) ([source](docs/v0.2-rag/v0.2-rapport-rag.tex)) | [ADR 0003](docs/adr/0003-rag-avec-citations-verifiees.md) |
 
 ## Organisation du dépôt
 
@@ -139,12 +153,23 @@ uv run python scripts/docs/build_report_pdf.py \
     docs/pdf/complaint-triage_v0.0_Rapport-de-cadrage.pdf
 ```
 
+Le RAG (v0.2) demande une clé Gemini gratuite, créée sur [Google AI Studio](https://aistudio.google.com) dans un projet sans facturation, à placer dans `.env` (voir `.env.example`). Les tests n'en ont pas besoin.
+
+```bash
+uv run python -m complaint_triage.rag                       # corpus réglementaire depuis l'eCFR
+uv run python scripts/rag/evaluate_retrieval.py             # mesure de la recherche, sans API
+uv run python scripts/rag/ask.py "How long does a bank have to investigate a disputed debit card transaction?"
+uv run python scripts/rag/evaluate_answers.py --part developpement -k 10   # estimation des appels
+uv run python scripts/rag/evaluate_answers.py --part developpement -k 10 --execute
+```
+
 La décision sur la période de test (`scripts/evaluation/decide_on_test.py` sans option) a été prise une seule fois ; le script refuse de la rejouer tant que ses résultats sont présents dans `docs/v0.1-donnees-et-scoring/data/`.
 
 ## Données
 
 - [Consumer Complaint Database](https://www.consumerfinance.gov/data-research/consumer-complaints/) du CFPB : API publique, données structurées mises à jour chaque jour.
 - [Narratives Archive](https://www.consumerfinance.gov/foia-requests/foia-electronic-reading-room/cfpb-consumer-complaint-database-narratives-archive/) du CFPB : récits publiés jusqu'au 14 août 2026.
+- [eCFR](https://www.ecfr.gov) : texte officiel des Regulations E, Z et DD (titre 12 du code des règlements fédéraux), version du 15 octobre 2026.
 
 Les données brutes ne sont pas versionnées. Le dépôt ne contient que des agrégats, et aucune autre donnée d'entreprise que ces publications officielles.
 
