@@ -44,6 +44,34 @@ def expected_captured(scores: npt.ArrayLike, labels: npt.ArrayLike, capacity: fl
     return captured
 
 
+def selection_probability(scores: npt.ArrayLike, capacity: float) -> npt.NDArray[np.float64]:
+    """Probabilité de chaque dossier d'être parmi les `capacity` premiers.
+
+    Même règle que `expected_captured` : un groupe d'ex æquo coupé par la limite a chacun la même
+    chance d'être retenu. La somme des probabilités des positifs redonne `expected_captured`.
+    """
+    scores_arr = np.asarray(scores, dtype=float)
+    order = np.argsort(-scores_arr, kind="stable")
+    _, sizes = np.unique(-scores_arr[order], return_counts=True)
+    before = np.cumsum(sizes) - sizes
+    taken = np.clip(float(capacity) - before, 0.0, sizes)
+    probability = np.empty(len(scores_arr))
+    probability[order] = np.repeat(taken / sizes, sizes)
+    return probability
+
+
+def selection_in_queues(
+    scores: npt.ArrayLike, queues: npt.ArrayLike, share: float = DEFAULT_SHARE
+) -> npt.NDArray[np.float64]:
+    """Probabilité de chaque dossier d'être traité en priorité dans sa propre file."""
+    scores_arr = np.asarray(scores, dtype=float)
+    queues_arr = np.asarray(queues)
+    probability = np.empty(len(scores_arr))
+    for rows in pd.Series(queues_arr).groupby(queues_arr, sort=False).indices.values():
+        probability[rows] = selection_probability(scores_arr[rows], share * len(rows))
+    return probability
+
+
 def capture_by_group(
     scores: npt.ArrayLike,
     labels: npt.ArrayLike,

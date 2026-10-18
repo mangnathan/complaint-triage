@@ -9,6 +9,8 @@ from complaint_triage.evaluation.metrics import (
     capture_at,
     capture_by_group,
     expected_captured,
+    selection_in_queues,
+    selection_probability,
 )
 
 
@@ -31,6 +33,32 @@ def test_ties_at_the_limit_count_their_expected_share() -> None:
     # Une place reste pour les 4 ex æquo : on capte en moyenne 2 x 1/4 = 0,5 positif.
     captured = expected_captured([0.9, 0.5, 0.5, 0.5, 0.5], [1, 1, 1, 0, 0], capacity=2)
     assert captured == pytest.approx(1.5)
+
+
+def test_selection_probability_splits_the_last_places_between_ties() -> None:
+    probability = selection_probability([0.9, 0.5, 0.5, 0.5, 0.5, 0.1], capacity=2)
+
+    np.testing.assert_allclose(probability, [1, 0.25, 0.25, 0.25, 0.25, 0])
+
+
+def test_selection_probability_agrees_with_expected_captured() -> None:
+    rng = np.random.default_rng(0)
+    scores = rng.integers(0, 20, size=500).astype(float)  # beaucoup d'ex æquo
+    labels = rng.random(500) < 0.2
+
+    probability = selection_probability(scores, capacity=50)
+
+    assert probability.sum() == pytest.approx(50)
+    assert (probability * labels).sum() == pytest.approx(expected_captured(scores, labels, 50))
+
+
+def test_each_queue_gives_priority_to_its_own_share() -> None:
+    queues = ["A"] * 10 + ["B"] * 30
+    probability = selection_in_queues(np.arange(40.0), queues, share=0.10)
+
+    assert probability[:10].sum() == pytest.approx(1)
+    assert probability[10:].sum() == pytest.approx(3)
+    assert probability[9] == 1  # meilleure note de A, même si toutes celles de B sont plus hautes
 
 
 def test_capture_is_computed_week_by_week_then_pooled() -> None:
