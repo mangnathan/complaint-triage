@@ -929,4 +929,23 @@ La calibration respecte le seuil & Aucun recalibrage ; suivi de la dérive en pr
 \caption{Bilan de l'étape 7}
 \end{table}
 
+\section{Décision sur la période de test}
+\label{sec:decision}
+
+\subsection{Le protocole, écrit avant d'ouvrir le test}
+
+La période de test couvre les réclamations reçues du 1\textsuperscript{er} janvier au 19 juillet 2026, soit 99\,089 réclamations sur 29 semaines ; les plus récentes n'ont pas encore 90 jours d'ancienneté et restent exclues. Elle n'a servi à aucun choix. Le protocole ci-dessous a été écrit et versionné avant son ouverture, et l'historique Git en garde la date.
+
+\begin{enumerate}
+  \item \textbf{Réentraînement.} H0 propre à la banque et le XGBoost retenu (variante D, profondeur 4, feuille minimale 100) sont réentraînés sur l'entraînement et la validation réunis, jusqu'au 31 décembre 2025. XGBoost arrête son apprentissage d'après les trois derniers mois de 2025. Aucun autre réglage ne change.
+  \item \textbf{Mesure.} Capture@10~\% chaque semaine dans la file de chaque banque et de chaque produit (section~\ref{sec:equite}), intervalles par bootstrap sur les semaines.
+  \item \textbf{Modèle structuré.} XGBoost n'est retenu que s'il fait au moins 5 points de plus que H0 propre à la banque, et si la borne basse de l'intervalle de l'écart est au-dessus de zéro. Sinon, H0 propre à la banque est retenu.
+  \item \textbf{Mise en service.} Le classement retenu doit respecter les seuils d'équité (rapports entre 0,8 et 1,25 pour les quatre sous-groupes) et de calibration (ECE sous 0,05) sur le test. Sinon, la mise en service est bloquée.
+  \item \textbf{Texte.} Le modèle de texte retenu sur la validation est le TF-IDF, à résultat égal avec DistilRoBERTa et bien plus simple. Il est réentraîné sur les récits de l'entraînement et de la validation, chaque récit recopié n'étant gardé qu'une fois. Il est gardé si sa PR-AUC dépasse d'au moins 0,02 celle du classement retenu, sur les récits de test jamais vus pendant l'apprentissage.
+\end{enumerate}
+
+Le critère du texte demande une précision. Au cadrage, la PR-AUC était implicitement calculée en mélangeant toutes les banques. Elle a le même défaut que l'ancienne Capture (section~\ref{sec:correction}) : elle récompense un classement qui reconnaît la banque. Sur la validation, ce choix change la conclusion. Banques mélangées, le TF-IDF ne gagne que 0,014 sur H0 propre à la banque, parce que H0 profite de sa connaissance des taux de chaque établissement ; dans les files, il gagne 0,068. Par cohérence avec la correction de la section~\ref{sec:correction}, la PR-AUC qui fait foi est calculée dans chaque file (banque et produit), puis moyennée en pondérant par le nombre de réclamations indemnisées. La version mélangée est publiée à côté. Ce choix a été fixé avant l'ouverture du test, et il favorise le texte : je le signale pour que le lecteur puisse en juger.
+
+Le script de décision (\nolinkurl{scripts/evaluation/decide_on_test.py}) applique ces règles telles qu'elles sont écrites dans le code (\texttt{complaint\_triage.evaluation.decision}), et refuse de tourner une seconde fois. Avant d'ouvrir le test, je l'ai exécuté en répétition sur la validation, avec un apprentissage limité à l'entraînement : il retrouve exactement les chiffres de la section~\ref{sec:equite} (18,4~\% pour H0 propre à la banque, 19,0~\% pour XGBoost) et ceux de la section sur le texte.
+
 \end{document}
