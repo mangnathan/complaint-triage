@@ -90,12 +90,14 @@ docs/
   vX.Y-<étape>/   source LaTeX, figures et données agrégées de chaque rapport
   adr/            notes de décision technique
   latex/          mise en page commune des rapports
+evaluation/       jeux de questions écrits à la main pour évaluer le RAG
 notebooks/        lanceur Colab pour l'entraînement sur GPU (sans logique propre)
 scripts/          scripts exécutables (faisabilité, exploration, évaluation, expériences, rapports)
 src/complaint_triage/
   data/           collecte, contrôle, assemblage et préparation des données du CFPB
   evaluation/     découpage dans le temps, files, Capture@10 %, équité, calibration, intervalles
   models/         règles de référence, XGBoost, référence textuelle TF-IDF, modèle de langage
+  rag/            corpus réglementaire de l'eCFR, recherche des passages, mesure de la recherche
 tests/            tests automatiques (pytest)
 ```
 

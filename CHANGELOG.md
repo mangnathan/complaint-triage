@@ -6,6 +6,10 @@ Les évolutions notables du projet sont notées ici, selon le format [Keep a Cha
 
 ### Ajouté
 - Corpus réglementaire du RAG (`complaint_triage.rag`, commande `python -m complaint_triage.rag`) : Regulation E (sous-partie A), Regulation Z (sous-parties B et G) et Regulation DD, téléchargées depuis l'API officielle de l'eCFR dans leur version du 15 octobre 2026, lues avec defusedxml et découpées en 366 passages citables, un par paragraphe de premier niveau (« 12 CFR 1005.11(b) »), avec un lien vers le texte officiel et un manifeste des sources.
+- Recherche des passages (`complaint_triage.rag.retrieval`) : mots-clés (BM25), sens (embeddings locaux `BAAI/bge-small-en-v1.5` avec fastembed, gardés en cache sur disque) et fusion par rangs réciproques. Jeu de 40 questions avec leurs passages attendus (`evaluation/rag/questions-recherche.csv`), réparties entre développement et test. La recherche par le sens est retenue sur le développement : rappel@5 de 80 %, puis 85 % sur le test, contre 45 % pour les mots-clés.
+
+### Corrigé
+- Le découpage du corpus laissait les définitions de la Regulation E en un seul bloc (« (a)(1) » sans espace) et prenait certaines lettres pour des chiffres romains. Les voisins de chaque marqueur tranchent désormais ; le corpus passe de 366 à 394 passages.
 
 ## [v0.1] - 2026-10-18
 
