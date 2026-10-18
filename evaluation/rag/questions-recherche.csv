@@ -1,0 +1,41 @@
+id,partie,reglement,question,passages_attendus
+q01,developpement,Regulation E,"A customer says someone used their debit card without permission. How long does the bank have to look into it and give an answer?",1005.11(c)-1;1005.11(c)-2
+q02,test,Regulation E,"How many days does a customer have, after getting their bank statement, to report a mistake on an electronic transfer?",1005.11(b)
+q03,developpement,Regulation E,"If the bank needs more than ten business days to finish its investigation, does it have to put the disputed money back in the account in the meantime?",1005.11(c)-1
+q04,test,Regulation E,"What is the most a customer can lose if their debit card is stolen and they tell the bank within two business days?",1005.6(b)-1
+q05,developpement,Regulation E,"Can the bank charge a fee for covering an ATM withdrawal or a one-time card purchase that overdraws the account if the customer never agreed to it?",1005.17(b)
+q06,test,Regulation E,"The bank concluded there was no mistake on the account. What does it have to tell the customer?",1005.11(d)
+q07,developpement,Regulation E,"A customer wants to cancel a recurring automatic payment from their checking account. How much notice do they need to give?",1005.10(c)
+q08,test,Regulation E,"Is a bank allowed to mail a debit card to someone who did not ask for one?",1005.5(b);1005.5(a)
+q09,developpement,Regulation E,"Can a store gift card expire after one year?",1005.20(e)
+q10,test,Regulation E,"What details about electronic transfers must appear on the monthly account statement?",1005.9(b)
+q11,developpement,Regulation E,"Does the customer have a right to a paper record when taking cash out of a machine?",1005.9(a)
+q12,test,Regulation E,"For how long must the bank keep evidence that it followed the rules on electronic payments?",1005.13(b)
+q13,developpement,Regulation E,"When is a payment taken from a customer's account considered not authorized by them?",1005.2(m)
+q14,test,Regulation E,"Must a cash machine owner warn the customer about its fee before the withdrawal?",1005.16(b);1005.16(c)
+q15,developpement,Regulation Z,"A cardholder disputes a charge on their credit card bill. By when must they write to the card company?",1026.13(b)
+q16,test,Regulation Z,"After receiving a dispute about a credit card bill, how fast must the card company confirm it received the complaint?",1026.13(c)
+q17,developpement,Regulation Z,"While a credit card dispute is still open, can the company try to collect the contested amount or report it as late?",1026.13(d)
+q18,test,Regulation Z,"What is the maximum a cardholder must pay when a thief uses their credit card?",1026.12(b)-1
+q19,developpement,Regulation Z,"A customer bought a faulty product with their credit card and the merchant refuses to fix it. Can they stop paying the card company for it?",1026.12(c)
+q20,test,Regulation Z,"Can a credit card company raise the interest rate on a balance the customer already owes?",1026.55(a)
+q21,developpement,Regulation Z,"How much warning must a credit card customer get before their interest rate goes up?",1026.9(c)-2;1026.9(c)-3;1026.9(g)-1
+q22,test,Regulation Z,"Is there a limit on how much a credit card company can charge for a late payment?",1026.52(b)-1;1026.52(b)-2
+q23,developpement,Regulation Z,"The customer pays more than the minimum. Which balance on the card should the extra money go to first?",1026.53(a)
+q24,test,Regulation Z,"Can a credit card company charge a fee for going over the credit limit if the customer never agreed to it?",1026.56(b)
+q25,developpement,Regulation Z,"On what date must a credit card payment be counted as received?",1026.10(a);1026.10(b)-1
+q26,test,Regulation Z,"Can the card company charge interest on the part of the balance the customer already paid off during the grace period?",1026.54(a)
+q27,developpement,Regulation Z,"Does the card company have to check that a person can afford the payments before giving them a credit card?",1026.51(a)-1
+q28,test,Regulation Z,"After raising a customer's interest rate, must the card company look at it again later to see if it should come down?",1026.59(a);1026.59(c)
+q29,developpement,Regulation Z,"A customer overpaid their credit card and now has a positive balance. What must the company do with that money?",1026.11(a)
+q30,test,Regulation Z,"Can a bank send a credit card to someone who never applied for it?",1026.12(a)
+q31,developpement,Regulation Z,"Must credit card companies make their card contracts available to the public online?",1026.58(d);1026.58(c)-1
+q32,test,Regulation DD,"What information must the bank give a customer before opening a savings account?",1030.4(a);1030.4(b)-1;1030.4(b)-2
+q33,developpement,Regulation DD,"How must the bank work out the interest earned on a deposit account?",1030.7(a)
+q34,test,Regulation DD,"The bank plans a change to a savings account that will lower what the customer earns. Must it warn the customer in advance?",1030.5(a)
+q35,developpement,Regulation DD,"A certificate of deposit renews automatically. What must the bank send the customer before it matures?",1030.5(b)-1;1030.5(b)-2
+q36,test,Regulation DD,"Must the monthly statement show how much the customer paid in overdraft fees?",1030.11(a)
+q37,developpement,Regulation DD,"What does the yearly yield figure on a deposit account actually measure?",1030.2(c)
+q38,test,Regulation DD,"Can a bank advertise a checking account as no-cost if it charges a monthly maintenance fee?",1030.8(a)
+q39,developpement,Regulation DD,"Must the account statement show the yield the customer actually earned over the period?",1030.6(a)
+q40,test,Regulation Z,"The card company looked into a billing dispute and found no mistake. What must it do next?",1026.13(f)
