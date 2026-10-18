@@ -801,4 +801,132 @@ Le texte n'existe plus en production & Le système déployé ne pourra de toute 
 
 La décision sera prise une seule fois, sur la période de test, après l'analyse d'équité de l'étape 7.
 
+\section{Équité et calibration}
+\label{sec:equite}
+
+\subsection{Objectif}
+
+Le cadrage impose deux contrôles avant toute mise en service, et le premier peut à lui seul la bloquer. L'outil ne doit défavoriser aucun groupe de clients, et ses notes doivent pouvoir se lire comme des probabilités. Les deux candidats contrôlés sont ceux qui peuvent fonctionner en production, donc sans le texte : la règle H0 propre à la banque et le XGBoost retenu à la section~\ref{sec:correction}. Tout se mesure sur la validation ; la période de test reste fermée.
+
+\subsection{Les mesures}
+
+Pour un sous-groupe de clients, je prends ses réclamations finalement indemnisées et je calcule la part que la banque a traitée en priorité, c'est-à-dire dans les 10~\% de tête de sa file cette semaine-là. C'est la Capture@10~\% restreinte au sous-groupe. Je la compare ensuite à la même mesure pour tous les autres clients. Un rapport de 1 veut dire qu'un client du groupe qui obtient gain de cause a autant de chances qu'un autre d'être traité vite. Le cadrage exige un rapport compris entre 0,8 et 1,25, la règle dite des quatre cinquièmes appliquée dans les deux sens. L'intervalle de confiance tire des semaines entières, comme pour la Capture.
+
+Les sous-groupes sont ceux fixés au cadrage : les clients que le CFPB signale comme âgés (\emph{Older American}, 6\,434 réclamations sur la validation) ou militaires (\emph{Servicemember}, 7\,094), et le produit. Une réclamation qui porte les deux étiquettes compte dans les deux groupes.
+
+La calibration se mesure par l'erreur de calibration attendue (ECE). On range les réclamations en 10 classes de notes de tailles voisines et on calcule, dans chaque classe, l'écart entre la note moyenne et la part réellement indemnisée ; l'ECE est la moyenne de ces écarts, pondérée par la taille des classes. Le cadrage exige moins de 0,05, soit 5 points de pourcentage. Les notes égales restent dans la même classe : un test a montré qu'autrement, avec les nombreux ex æquo de H0, le résultat dépendait de l'ordre des lignes du fichier.
+
+\subsection{Premier résultat : le produit échoue}
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{@{}l r r r@{}}
+\toprule
+Sous-groupe & \shortstack[r]{Taux\\d'indemnisation} & \shortstack[r]{H0 propre\\à la banque} & XGBoost retenu \\
+\midrule
+Older American & 17,4~\% & 1,09 [0,97 ; 1,22] & 1,00 [0,90 ; 1,11] \\
+Servicemember & 14,0~\% & 0,90 [0,80 ; 1,00] & 1,02 [0,91 ; 1,15] \\
+Cartes de crédit & 16,5~\% & \textbf{2,39} [2,20 ; 2,61] & \textbf{3,72} [3,34 ; 4,13] \\
+Comptes courants et d'épargne & 12,5~\% & \textbf{0,42} [0,38 ; 0,46] & \textbf{0,27} [0,24 ; 0,30] \\
+\bottomrule
+\end{tabular}
+\caption{Rapport des Capture@10~\% avec une file par banque, sur la validation}
+\end{table}
+
+Les clients signalés comme âgés ou militaires ne sont pas désavantagés : les quatre rapports restent dans les seuils. Le produit, en revanche, échoue nettement, et pour les deux candidats.
+
+Une réclamation sur un compte courant ou d'épargne qui finira indemnisée n'a que 10,9~\% de chances d'être traitée en priorité avec H0, et 7,7~\% avec XGBoost, contre 26 à 29~\% pour une carte de crédit. Un tri au hasard ferait aussi bien, ou mieux. La cause est mécanique. Les cartes de crédit sont plus souvent indemnisées (16,5~\% contre 12,5~\%), donc toutes leurs réclamations reçoivent des notes plus hautes, et elles occupent presque toutes les places de tête dans les banques qui gèrent les deux produits. Les clients des comptes courants se retrouvent relégués, même quand leur dossier est fondé. Le meilleur modèle aggrave l'effet, parce qu'il sépare mieux les deux produits.
+
+Ce n'est pas un défaut de modèle : la règle simple échoue aussi. C'est un défaut de conception de l'outil, qui met en concurrence des dossiers que rien n'oblige à comparer.
+
+\subsection{La correction : une file par produit}
+
+La correction consiste à réserver à chaque produit sa part des places prioritaires : chaque banque traite d'abord 10~\% de ses réclamations sur les cartes et 10~\% de ses réclamations sur les comptes. C'est aussi l'organisation la plus courante en pratique, où des équipes différentes traitent les litiges de carte et ceux des comptes. La file devient donc le couple établissement et produit, défini une seule fois dans le code (\texttt{complaint\_triage.evaluation.queues}).
+
+Je n'ai pas retenu une autre solution, qui consistait à retirer le produit des critères d'équité au motif que ce n'est pas un groupe de clients. Ce serait changer la règle après avoir vu le résultat, alors que le préjudice est réel pour les clients concernés. Le contrôle d'équité a joué le rôle que lui donnait le cadrage : il a fait changer la conception de l'outil. Les seuils, eux, n'ont pas bougé.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{equite-validation.png}
+\caption{Rapport des Capture@10~\% entre chaque sous-groupe et les autres clients, avant et après la correction. La bande grise marque les seuils du cadrage ; l'échelle est logarithmique.}
+\end{figure}
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{@{}l r r@{}}
+\toprule
+Sous-groupe & H0 propre à la banque & XGBoost retenu \\
+\midrule
+Older American & 1,02 [0,89 ; 1,14] & 0,95 [0,82 ; 1,09] \\
+Servicemember & 0,87 [0,79 ; 0,96] & 1,01 [0,86 ; 1,18] \\
+Cartes de crédit & 1,11 [1,04 ; 1,18] & 1,08 [1,02 ; 1,13] \\
+Comptes courants et d'épargne & 0,90 [0,85 ; 0,96] & 0,93 [0,88 ; 0,98] \\
+\bottomrule
+\end{tabular}
+\caption{Rapport des Capture@10~\% avec une file par banque et par produit, sur la validation}
+\end{table}
+
+Avec une file par produit, tous les rapports rentrent dans les seuils. Un écart demande toutefois d'être suivi : avec H0, les clients militaires sont un peu moins souvent traités en priorité que les autres (0,87), et cette fois l'intervalle exclut 1. Le rapport reste au-dessus de 0,8, mais l'écart n'est probablement pas dû au hasard. XGBoost ne le montre pas (1,01).
+
+\subsection{Ce que coûte la correction}
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{@{}l r r@{}}
+\toprule
+Classement & Une file par banque & Une file par banque et produit \\
+\midrule
+H0 propre à la banque & 19,4~\% & 18,4~\% \\
+XGBoost retenu & 19,4~\% & 19,0~\% \\
+Écart XGBoost -- H0 [IC 95~\%] & $0{,}0$ [$-0{,}5$ ; $+0{,}5$] & $+0{,}6$ [$+0{,}1$ ; $+1{,}2$] \\
+\bottomrule
+\end{tabular}
+\caption{Capture@10~\% sur la validation selon l'organisation des files}
+\end{table}
+
+Réserver des places à chaque produit coûte environ un point de Capture@10~\% à H0, et un peu moins à XGBoost. C'est le prix d'un traitement équitable entre les deux produits : on capte un peu moins de réclamations indemnisées au total, mais celles des comptes courants ne sont plus sacrifiées. Avec les nouvelles files, XGBoost dépasse légèrement H0, de 0,6 point, loin de la marge de 5 points.
+
+\subsection{Calibration}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.62\linewidth]{calibration-validation.png}
+\caption{Note moyenne et part réellement indemnisée dans chacune des 10 classes de notes, sur la validation.}
+\end{figure}
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{@{}l r r@{}}
+\toprule
+Population & H0 propre à la banque & XGBoost retenu \\
+\midrule
+Toutes les réclamations & 0,022 & 0,009 \\
+Older American & 0,025 & 0,021 \\
+Servicemember & 0,026 & 0,019 \\
+Cartes de crédit & 0,032 & 0,020 \\
+Comptes courants et d'épargne & 0,014 & 0,006 \\
+\bottomrule
+\end{tabular}
+\caption{Erreur de calibration (ECE) sur la validation ; le seuil est 0,05}
+\end{table}
+
+Les deux candidats respectent le seuil, dans l'ensemble comme dans chaque sous-groupe. H0 surestime un peu le risque : 16,5~\% en moyenne, pour 14,5~\% de réclamations réellement indemnisées. Ses taux sont calculés sur toute la période d'entraînement, depuis 2022, alors que le taux d'indemnisation a baissé depuis (rapport de cadrage, section 5). XGBoost suit mieux le niveau récent, sans doute en partie parce que son apprentissage s'arrête d'après les trois derniers mois de l'entraînement. Aucun recalibrage n'est nécessaire, mais cette dérive confirme qu'il faudra surveiller la calibration en production.
+
+\subsection{Conséquences}
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}Y Y@{}}
+\toprule
+Constat & Conséquence \\
+\midrule
+Avec une file par banque, les comptes courants sont relégués & Chaque banque traite en priorité 10~\% de la file de chaque produit ; cette définition s'applique à la décision finale \\
+Les clients âgés ou militaires ne sont pas désavantagés & Les deux candidats restent éligibles \\
+H0 traite un peu moins vite les clients militaires (0,87) & À surveiller en production, avec les autres rapports \\
+La calibration respecte le seuil & Aucun recalibrage ; suivi de la dérive en production \\
+\bottomrule
+\end{tabularx}
+\caption{Bilan de l'étape 7}
+\end{table}
+
 \end{document}
