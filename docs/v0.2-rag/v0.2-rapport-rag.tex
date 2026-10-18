@@ -8,7 +8,7 @@
 
 \begin{document}
 
-\pagedegarde{Réponses appuyées sur les textes réglementaires, avec citations ou refus}{Version de travail, octobre 2026}{Étapes 1 et 2 sur 5 rédigées}
+\pagedegarde{Réponses appuyées sur les textes réglementaires, avec citations ou refus}{Version de travail, octobre 2026}{Étapes 1 à 3 sur 5 rédigées}
 
 \setcounter{tocdepth}{1}
 \tableofcontents
@@ -174,5 +174,40 @@ La recherche par le sens est retenue : elle trouve un bon passage parmi les 5 pr
 \subsection{Conséquences pour la génération}
 
 Une question sur sept environ n'aura pas son bon passage dans les 5 premiers résultats. Le modèle de langage devra alors refuser plutôt que répondre à côté : c'est le rôle du refus, et ce sera mesuré à l'étape 4. Deux pistes pourront être évaluées sur le développement : donner plus de passages au modèle (le rappel@10 atteint 95~\% sur le développement), et ajouter un petit glossaire qui traduit le vocabulaire courant en vocabulaire réglementaire.
+
+\section{La génération}
+
+\subsection{Le principe : le modèle propose, le code vérifie}
+
+Le modèle de langage reçoit la question et les 5 passages retrouvés, chacun précédé de son identifiant. Il doit répondre dans un format imposé (JSON, décrit par un schéma transmis à l'API) : s'il peut répondre, la réponse et, pour chaque affirmation, l'identifiant du passage et un extrait exact qui l'appuie ; sinon, un refus et sa raison.
+
+La consigne seule ne suffit pas : un modèle de langage peut affirmer qu'un extrait se trouve dans un passage alors qu'il l'a reformulé ou inventé. Chaque citation est donc contrôlée par le code, et la réponse n'est transmise que si toutes passent :
+\begin{itemize}
+  \item le passage cité doit faire partie de ceux fournis au modèle ;
+  \item l'extrait doit s'y trouver mot pour mot, aux espaces et aux guillemets typographiques près ;
+  \item l'extrait doit compter au moins 20 caractères, pour qu'un fragment comme « 60 days » ne suffise pas à prouver quoi que ce soit ;
+  \item la réponse doit contenir au moins une citation.
+\end{itemize}
+
+Une seule citation invérifiable entraîne le refus de toute la réponse. Une réponse illisible, ou bloquée par le filtre de Google, est aussi refusée. Chaque source retenue est accompagnée de sa citation officielle et d'un lien qui ouvre le texte de l'eCFR au paragraphe cité.
+
+\subsection{Sécurité}
+
+La question est nettoyée avant usage : caractères de contrôle retirés, longueur limitée à 1\,000 caractères, question vide refusée. La consigne demande au modèle de traiter la question comme une donnée et d'ignorer les instructions qu'elle contiendrait. Ce n'est pas une garantie contre une tentative de manipulation, mais la vérification des citations en est une : une réponse détournée ne passerait pas le contrôle si elle ne s'appuie pas sur le texte des passages.
+
+\subsection{Le quota gratuit, protégé par le code}
+
+Le projet utilise Gemini 3.5 Flash-Lite, sur l'offre gratuite de Google, dans un projet sans aucune facturation liée : rien ne peut être facturé. Les limites gratuites relevées le 18 octobre 2026 sont de 15 requêtes par minute et 500 par jour. Trois garde-fous évitent de les approcher :
+\begin{enumerate}
+  \item \textbf{un cache} : chaque réponse est enregistrée, avec une clé qui dépend du modèle, de la consigne et des passages. Relancer une évaluation ne coûte aucun appel ;
+  \item \textbf{un compteur} enregistré sur disque, plafonné à 300 appels par jour et 10 par minute. Au-delà du plafond du jour, l'appel est refusé avant d'être envoyé ; au-delà du plafond par minute, le code attend. Le compteur se remet à zéro à minuit, heure du Pacifique, comme celui de Google ;
+  \item \textbf{l'arrêt sur une réponse 429} de Google, sans nouvel essai.
+\end{enumerate}
+
+La clé est lue dans le fichier \texttt{.env}, qui n'est pas versionné, et voyage dans un en-tête HTTP plutôt que dans l'adresse, pour ne jamais apparaître dans un journal. Les tests automatiques utilisent un faux modèle : ils tournent sans clé ni réseau, et la CI n'appelle jamais Gemini. Le nom du modèle est un réglage : les modèles gratuits changent souvent.
+
+\subsection{Premier essai}
+
+Un premier essai réel, de deux appels, a vérifié la chaîne de bout en bout. À une question sur la responsabilité d'un client qui signale la perte de sa carte au bout de 70 jours, le RAG répond en citant deux extraits exacts de 12 CFR 1005.6(b). À une question sur le score de crédit minimum pour un prêt immobilier, hors du corpus, il refuse en expliquant que les passages n'en parlent pas. La mesure systématique fait l'objet de l'étape suivante.
 
 \end{document}
