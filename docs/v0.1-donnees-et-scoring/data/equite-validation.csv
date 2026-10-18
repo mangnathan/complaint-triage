@@ -1,0 +1,17 @@
+file,modele,sous_groupe,reclamations,indemnisees,taux_indemnisation,capture_groupe,capture_autres,rapport,rapport_bas,rapport_haut,dans_les_seuils
+Une file par banque,H0 propre à la banque,Older American,6434,1118,17.376,20.93,19.213,1.089,0.968,1.217,True
+Une file par banque,H0 propre à la banque,Servicemember,7094,994,14.012,17.581,19.574,0.898,0.802,1.005,True
+Une file par banque,H0 propre à la banque,Cartes de crédit,36572,6037,16.507,26.09,10.939,2.385,2.197,2.611,False
+Une file par banque,H0 propre à la banque,Comptes courants et d'épargne,38196,4785,12.527,10.939,26.09,0.419,0.383,0.455,False
+Une file par banque,XGBoost retenu,Older American,6434,1118,17.376,19.421,19.378,1.002,0.897,1.111,True
+Une file par banque,XGBoost retenu,Servicemember,7094,994,14.012,19.686,19.352,1.017,0.91,1.15,True
+Une file par banque,XGBoost retenu,Cartes de crédit,36572,6037,16.507,28.643,7.699,3.72,3.34,4.133,False
+Une file par banque,XGBoost retenu,Comptes courants et d'épargne,38196,4785,12.527,7.699,28.643,0.269,0.242,0.299,False
+Une file par banque et produit,H0 propre à la banque,Older American,6434,1118,17.376,18.676,18.347,1.018,0.886,1.142,True
+Une file par banque et produit,H0 propre à la banque,Servicemember,7094,994,14.012,16.214,18.6,0.872,0.792,0.959,True
+Une file par banque et produit,H0 propre à la banque,Cartes de crédit,36572,6037,16.507,19.216,17.327,1.109,1.042,1.181,True
+Une file par banque et produit,H0 propre à la banque,Comptes courants et d'épargne,38196,4785,12.527,17.327,19.216,0.902,0.847,0.959,True
+Une file par banque et produit,XGBoost retenu,Older American,6434,1118,17.376,18.132,19.082,0.95,0.816,1.085,True
+Une file par banque et produit,XGBoost retenu,Servicemember,7094,994,14.012,19.076,18.974,1.005,0.86,1.18,True
+Une file par banque et produit,XGBoost retenu,Cartes de crédit,36572,6037,16.507,19.586,18.224,1.075,1.02,1.132,True
+Une file par banque et produit,XGBoost retenu,Comptes courants et d'épargne,38196,4785,12.527,18.224,19.586,0.93,0.883,0.98,True

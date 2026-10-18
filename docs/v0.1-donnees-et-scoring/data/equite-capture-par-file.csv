@@ -1,0 +1,5 @@
+file,modele,capture,capture_bas,capture_haut,gain_vs_h0_banque,gain_bas,gain_haut
+Une file par banque,H0 propre à la banque,19.39,18.8,20.01,0.0,0.0,0.0
+Une file par banque,XGBoost retenu,19.38,18.61,20.16,-0.01,-0.53,0.53
+Une file par banque et produit,H0 propre à la banque,18.38,18.0,18.82,0.0,0.0,0.0
+Une file par banque et produit,XGBoost retenu,18.98,18.36,19.64,0.6,0.06,1.16
