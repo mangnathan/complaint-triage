@@ -1,0 +1,7 @@
+modele,capture_par_banque,capture_bas,capture_haut,gain_vs_h0_banque,gain_bas,gain_haut,pr_auc
+H0 propre à la banque,19.03,18.19,19.83,0.0,0.0,0.0,0.37
+XGBoost (sans texte),18.68,17.79,19.54,-0.35,-0.96,0.26,0.37
+TF-IDF (texte seul),21.79,21.0,22.58,2.76,1.79,3.63,0.39
+DistilRoBERTa (texte seul),22.0,21.11,22.89,2.97,1.94,3.98,0.41
+XGBoost + TF-IDF,21.81,20.83,22.77,2.78,2.0,3.56,0.41
+XGBoost + DistilRoBERTa,21.63,20.65,22.52,2.6,1.81,3.41,0.42

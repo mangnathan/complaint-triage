@@ -8,7 +8,7 @@ Un service réclamations traite en général ses dossiers dans l'ordre d'arrivé
 
 Le projet est pensé pour fonctionner en continu, pas comme une étude ponctuelle. Depuis le 14 août 2026, le CFPB ne publie plus le texte des réclamations. Le modèle de production doit donc se passer du texte, attendre que les issues soient connues avant d'apprendre, et être évalué en permanence sur les décisions réelles des banques.
 
-Statut actuel : v0.1 en cours, étape 6 sur 8. Les données sont collectées et explorées, le cadre d'évaluation est en place, un premier modèle sans texte est mesuré, et le modèle de texte est en cours d'évaluation.
+Statut actuel : v0.1 en cours, étape 7 sur 8. Les données sont collectées et explorées, le cadre d'évaluation est en place, et les modèles avec et sans texte sont mesurés sur la période de validation.
 
 ## Où en est le projet
 
@@ -19,8 +19,8 @@ Statut actuel : v0.1 en cours, étape 6 sur 8. Les données sont collectées et 
 | 3 | Exploration et préparation des données | terminé |
 | 4 | Cadre d'évaluation et règle de référence | terminé |
 | 5 | Modèle XGBoost sans texte | terminé, conclusion révisée à l'étape 6 |
-| 6 | Modèle de texte et correction de la métrique | en cours |
-| 7 | Équité par sous-groupe et calibration | à venir |
+| 6 | Modèle de texte et correction de la métrique | terminé |
+| 7 | Équité par sous-groupe et calibration | en cours |
 | 8 | Décision sur la période de test, rapport v0.1 | à venir |
 
 Résultats provisoires sur la période de validation (juillet à décembre 2025), dans la file de chaque établissement :
@@ -32,7 +32,15 @@ Résultats provisoires sur la période de validation (juillet à décembre 2025)
 | Règle H0 avec les taux propres à chaque banque | 19,4 % |
 | Meilleur XGBoost, sans texte | 19,4 % |
 
-Sans le texte des réclamations, aucun modèle ne fait mieux que la règle des taux propres à chaque banque. La mesure de ce qu'apporte le texte est en cours. La décision finale sera prise une seule fois, sur la période de test.
+Sur les réclamations qui ont un récit, dans la file de chaque établissement :
+
+| Classement | Capture@10 % | Écart avec la règle propre à la banque |
+|---|---|---|
+| Règle H0 avec les taux propres à chaque banque | 19,0 % | — |
+| Référence textuelle TF-IDF | 21,8 % | +2,8 points [1,8 ; 3,6] |
+| Modèle de langage DistilRoBERTa | 22,0 % | +3,0 points [2,0 ; 4,0] |
+
+Sans le texte, aucun modèle ne fait mieux que la règle des taux propres à chaque banque. Le texte apporte un gain réel d'environ 3 points, mais aucun modèle n'atteint la marge de 5 points fixée au cadrage, et le modèle de langage ne fait pas mieux que la référence TF-IDF. La décision finale sera prise une seule fois, sur la période de test.
 
 ## Quelques chiffres
 
