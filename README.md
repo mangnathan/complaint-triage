@@ -8,7 +8,7 @@ Un service réclamations traite en général ses dossiers dans l'ordre d'arrivé
 
 Le projet est pensé pour fonctionner en continu, pas comme une étude ponctuelle. Depuis le 14 août 2026, le CFPB ne publie plus le texte des réclamations. Le modèle de production doit donc se passer du texte, attendre que les issues soient connues avant d'apprendre, et être évalué en permanence sur les décisions réelles des banques.
 
-Statut actuel : v0.1 en cours, étape 7 sur 8. Les données sont collectées et explorées, le cadre d'évaluation est en place, et les modèles avec et sans texte sont mesurés sur la période de validation.
+Statut actuel : v0.1 en cours, étape 8 sur 8. Les données sont collectées et explorées, le cadre d'évaluation est en place, les modèles avec et sans texte sont mesurés sur la période de validation, et les candidats ont passé les contrôles d'équité et de calibration.
 
 ## Où en est le projet
 
@@ -20,7 +20,7 @@ Statut actuel : v0.1 en cours, étape 7 sur 8. Les données sont collectées et 
 | 4 | Cadre d'évaluation et règle de référence | terminé |
 | 5 | Modèle XGBoost sans texte | terminé, conclusion révisée à l'étape 6 |
 | 6 | Modèle de texte et correction de la métrique | terminé |
-| 7 | Équité par sous-groupe et calibration | en cours |
+| 7 | Équité par sous-groupe et calibration | terminé, files séparées par produit |
 | 8 | Décision sur la période de test, rapport v0.1 | à venir |
 
 Résultats provisoires sur la période de validation (juillet à décembre 2025), dans la file de chaque établissement :
@@ -40,7 +40,16 @@ Sur les réclamations qui ont un récit, dans la file de chaque établissement :
 | Référence textuelle TF-IDF | 21,8 % | +2,8 points [1,8 ; 3,6] |
 | Modèle de langage DistilRoBERTa | 22,0 % | +3,0 points [2,0 ; 4,0] |
 
-Sans le texte, aucun modèle ne fait mieux que la règle des taux propres à chaque banque. Le texte apporte un gain réel d'environ 3 points, mais aucun modèle n'atteint la marge de 5 points fixée au cadrage, et le modèle de langage ne fait pas mieux que la référence TF-IDF. La décision finale sera prise une seule fois, sur la période de test.
+Sans le texte, aucun modèle ne fait mieux que la règle des taux propres à chaque banque. Le texte apporte un gain réel d'environ 3 points, mais aucun modèle n'atteint la marge de 5 points fixée au cadrage, et le modèle de langage ne fait pas mieux que la référence TF-IDF.
+
+Le contrôle d'équité a ensuite fait changer la conception de l'outil. Avec une seule file par banque, les cartes de crédit, plus souvent indemnisées, prenaient presque toutes les places prioritaires : une réclamation fondée sur un compte courant avait moins de chances d'être traitée vite qu'avec un tri au hasard. Chaque banque traite désormais en priorité 10 % de la file de chaque produit. Tous les rapports entre sous-groupes (clients âgés, militaires, produit) rentrent alors dans les seuils du cadrage, et la calibration est bonne (erreur de 0,022 pour la règle, 0,009 pour XGBoost, sous le seuil de 0,05).
+
+| Classement, une file par banque et produit | Capture@10 % |
+|---|---|
+| Règle H0 avec les taux propres à chaque banque | 18,4 % |
+| Meilleur XGBoost, sans texte | 19,0 % (+0,6 point [0,1 ; 1,2]) |
+
+La décision finale sera prise une seule fois, sur la période de test.
 
 ## Quelques chiffres
 
@@ -55,11 +64,13 @@ Mesures du 17 octobre 2026 sur les cartes de crédit et les comptes courants et 
 
 ## Mesure du succès
 
-L'indicateur principal est la Capture@10 % : chaque semaine, chaque banque traite d'abord 10 % de sa propre file de réclamations, et on mesure la part des réclamations finalement indemnisées qui s'y trouvent. Un tri au hasard donne 10 %.
+L'indicateur principal est la Capture@10 % : chaque semaine, chaque banque traite d'abord 10 % de sa propre file de réclamations pour chaque produit, et on mesure la part des réclamations finalement indemnisées qui s'y trouvent. Un tri au hasard donne 10 %.
 
 Le modèle doit faire au moins 5 points de mieux qu'une règle métier simple : les taux d'indemnisation historiques de la banque par produit, motif et sous-motif, rapprochés de ceux du marché quand elle a peu de réclamations dans une catégorie. Cette marge a été fixée avant toute modélisation. Si aucun modèle ne l'atteint, c'est la règle simple qui sera utilisée, et le résultat sera documenté. Le détail figure dans le [rapport de cadrage](docs/pdf/complaint-triage_v0.0_Rapport-de-cadrage.pdf), section 7.
 
-La première version de la métrique classait toutes les banques ensemble. Elle avantageait les modèles capables de deviner la banque, ce qui ne sert à rien à un établissement qui trie sa propre file. Elle a été corrigée pendant la v0.1 pour coller à la définition du client écrite au cadrage, sans changer la marge exigée. L'explication complète figurera dans le rapport v0.1.
+La première version de la métrique classait toutes les banques ensemble. Elle avantageait les modèles capables de deviner la banque, ce qui ne sert à rien à un établissement qui trie sa propre file. Elle a été corrigée pendant la v0.1 pour coller à la définition du client écrite au cadrage, sans changer la marge exigée. La file a ensuite été séparée par produit à la suite du contrôle d'équité. L'explication complète figurera dans le rapport v0.1.
+
+Avant toute mise en service, deux contrôles fixés au cadrage doivent être passés : entre un sous-groupe de clients et les autres, le rapport des Capture@10 % doit rester entre 0,8 et 1,25, et l'erreur de calibration (ECE) doit rester sous 0,05.
 
 ## Feuille de route
 
@@ -94,7 +105,7 @@ notebooks/        lanceur Colab pour l'entraînement sur GPU (sans logique propr
 scripts/          scripts exécutables (faisabilité, exploration, évaluation, expériences, rapports)
 src/complaint_triage/
   data/           collecte, contrôle, assemblage et préparation des données du CFPB
-  evaluation/     découpage dans le temps, Capture@10 % par file, intervalles de confiance
+  evaluation/     découpage dans le temps, files, Capture@10 %, équité, calibration, intervalles
   models/         règles de référence, XGBoost, référence textuelle TF-IDF, modèle de langage
 tests/            tests automatiques (pytest)
 ```
@@ -114,6 +125,7 @@ uv run python scripts/analysis/explore_dataset.py       # analyses, tableaux et 
 uv run python scripts/evaluation/evaluate_references.py # classements de référence sur la validation
 uv run python scripts/experiments/train_xgboost.py      # variantes XGBoost, tracées dans MLflow
 uv run python scripts/evaluation/evaluate_by_bank.py    # réévaluation dans la file de chaque banque
+uv run python scripts/evaluation/evaluate_fairness_calibration.py # équité et calibration
 uv run mlflow ui --backend-store-uri sqlite:///mlflow.db # consulter les expériences
 ```
 

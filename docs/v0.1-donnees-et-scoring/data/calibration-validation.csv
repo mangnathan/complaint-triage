@@ -1,0 +1,11 @@
+modele,population,reclamations,note_moyenne,taux_observe,ece,conforme
+H0 propre à la banque,Toutes les réclamations,74768,16.472,14.4741,0.0218,True
+H0 propre à la banque,Older American,6434,19.5526,17.3764,0.0246,True
+H0 propre à la banque,Servicemember,7094,16.2773,14.0118,0.0257,True
+H0 propre à la banque,Cartes de crédit,36572,19.0963,16.5072,0.032,True
+H0 propre à la banque,Comptes courants et d'épargne,38196,13.9592,12.5275,0.0143,True
+XGBoost retenu,Toutes les réclamations,74768,15.0003,14.4741,0.0093,True
+XGBoost retenu,Older American,6434,18.0219,17.3764,0.0212,True
+XGBoost retenu,Servicemember,7094,15.0681,14.0118,0.0185,True
+XGBoost retenu,Cartes de crédit,36572,17.9116,16.5072,0.0195,True
+XGBoost retenu,Comptes courants et d'épargne,38196,12.2128,12.5275,0.0064,True
