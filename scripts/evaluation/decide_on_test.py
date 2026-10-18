@@ -160,13 +160,14 @@ def plot(structure: pd.DataFrame, out: Path) -> None:
     )
     bar_to_beat = reference + MODEL_MARGIN * 100
     ax.axvline(bar_to_beat, color=INK, lw=1, ls="--")
-    ax.annotate(
-        "barre du cadrage (H0 + 5 points)",
-        (bar_to_beat, 1.35),
-        xytext=(4, 0),
-        textcoords="offset points",
+    ax.text(
+        bar_to_beat,
+        1.02,
+        " barre du cadrage : H0 + 5 points",
+        transform=ax.get_xaxis_transform(),
         fontsize=7,
         color=INK_2,
+        va="bottom",
     )
     for bar, value in zip(bars, table["capture"], strict=True):
         ax.annotate(
