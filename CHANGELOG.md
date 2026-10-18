@@ -24,12 +24,15 @@ Les évolutions notables du projet sont notées ici, selon le format [Keep a Cha
 - Comparaison des modèles de texte dans la file de chaque banque (`scripts/experiments/evaluate_text_models.py`), sur les récits de validation jamais vus à l'entraînement : TF-IDF +2,8 points sur H0 propre à la banque [1,8 ; 3,6], DistilRoBERTa fine-tuné sur Colab +3,0 points [2,0 ; 4,0]. Le texte apporte un gain réel, sous la marge de 5 points ; le modèle de langage ne fait pas mieux que le TF-IDF.
 - Reprise automatique du fine-tuning au dernier point de sauvegarde, stocké dans Google Drive.
 - Rapport v0.1, sections 6 (correction de la métrique) et 7 (texte).
+- Contrôles d'équité et de calibration (`complaint_triage.evaluation.fairness` et `.calibration`) : rapport des Capture@10 % entre un sous-groupe et les autres clients, avec intervalle par bootstrap sur les semaines, et erreur de calibration (ECE) sur 10 classes. Script `scripts/evaluation/evaluate_fairness_calibration.py`.
+- Rapport v0.1, section 8 (équité et calibration).
 
 ### Corrigé
 - La Capture@10 % classait toutes les banques ensemble et avantageait les modèles capables de deviner la banque, ce qui ne sert à rien à un établissement qui trie sa propre file. Elle est désormais calculée dans la file de chaque établissement, semaine par semaine, et la référence devient H0 propre à la banque (ses taux historiques par motif, rapprochés de ceux du marché). La marge exigée ne change pas. Défaut repéré grâce aux mots les plus importants de la référence textuelle, qui étaient des noms de banques.
 - Conséquence sur l'étape 5 : réévalué dans la file de chaque banque, aucun modèle XGBoost ne fait mieux que H0 propre à la banque (19,4 % de Capture@10 % sur la validation). Le gain de 3 points mesuré d'abord venait des compteurs de volume par établissement, qui trahissaient la banque.
 
 ### Modifié
+- Chaque banque traite désormais en priorité 10 % de la file de chaque produit (`complaint_triage.evaluation.queues`). Avec une seule file par banque, les réclamations indemnisées sur un compte courant n'étaient traitées en priorité que dans 8 à 11 % des cas, autant ou moins qu'au hasard, et le rapport entre produits sortait des seuils du cadrage (2,4 pour la règle H0, 3,7 pour XGBoost). Avec une file par produit, tous les rapports rentrent dans les seuils ; la Capture@10 % sur la validation passe de 19,4 % à 18,4 % pour H0 propre à la banque et à 19,0 % pour XGBoost.
 - La contrainte sur pyarrow passe de `>=26` à `>=21` : la borne posée par défaut empêchait d'installer une version récente de MLflow.
 - Intégration continue avec GitHub Actions : lint, format, typage strict et tests sur une machine propre, à chaque PR et à chaque push sur `main`, avec les versions exactes du `uv.lock`.
 
