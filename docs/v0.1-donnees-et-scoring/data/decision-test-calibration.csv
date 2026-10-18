@@ -1,0 +1,3 @@
+modele,note_moyenne,taux_observe,ece,conforme
+H0 propre à la banque,17.6073,15.2055,0.0242,True
+XGBoost retenu,15.1819,15.2055,0.006,True

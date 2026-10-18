@@ -1,0 +1,9 @@
+modele,sous_groupe,capture_groupe,capture_autres,rapport,rapport_bas,rapport_haut,dans_les_seuils
+H0 propre à la banque,Older American,16.403,17.553,0.934,0.856,1.013,True
+H0 propre à la banque,Servicemember,19.271,17.248,1.117,1.029,1.207,True
+H0 propre à la banque,Cartes de crédit,17.867,16.862,1.06,0.988,1.133,True
+H0 propre à la banque,Comptes courants et d'épargne,16.862,17.867,0.944,0.882,1.013,True
+XGBoost retenu,Older American,17.101,16.941,1.009,0.898,1.137,True
+XGBoost retenu,Servicemember,18.509,16.803,1.102,0.992,1.224,True
+XGBoost retenu,Cartes de crédit,17.382,16.404,1.06,0.998,1.13,True
+XGBoost retenu,Comptes courants et d'épargne,16.404,17.382,0.944,0.885,1.002,True
