@@ -1,0 +1,7 @@
+partie,methode,rappel@1,rappel@3,rappel@5,rappel@10,mrr
+developpement,Mots-clés (BM25),0.25,0.35,0.45,0.6,0.336
+developpement,Sens (embeddings),0.35,0.7,0.8,0.95,0.548
+developpement,Hybride (fusion des rangs),0.4,0.55,0.65,0.75,0.511
+test,Mots-clés (BM25),0.05,0.35,0.45,0.55,0.21
+test,Sens (embeddings),0.3,0.75,0.85,0.9,0.556
+test,Hybride (fusion des rangs),0.35,0.7,0.75,0.85,0.525
