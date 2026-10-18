@@ -4,10 +4,11 @@
 \newcommand{\rapportversion}{v0.2}
 \input{../latex/preambule}
 \usepackage{microtype}
+\usepackage{amsmath}
 
 \begin{document}
 
-\pagedegarde{Réponses appuyées sur les textes réglementaires, avec citations ou refus}{Version de travail, octobre 2026}{Étape 1 sur 5 rédigée}
+\pagedegarde{Réponses appuyées sur les textes réglementaires, avec citations ou refus}{Version de travail, octobre 2026}{Étapes 1 et 2 sur 5 rédigées}
 
 \setcounter{tocdepth}{1}
 \tableofcontents
@@ -70,9 +71,9 @@ Le corpus réunit les règles fédérales américaines qui encadrent les deux pr
 \toprule
 Texte & Partie & Ce qu'il encadre & Passages \\
 \midrule
-Regulation E & 12 CFR 1005, sous-partie A & Transferts électroniques de fonds, dont la résolution des erreurs et la responsabilité du client en cas d'opération non autorisée & 124 \\
+Regulation E & 12 CFR 1005, sous-partie A & Transferts électroniques de fonds, dont la résolution des erreurs et la responsabilité du client en cas d'opération non autorisée & 139 \\
 Regulation Z & 12 CFR 1026, sous-parties B et G & Crédit renouvelable et cartes de crédit, dont les contestations de facturation & 196 \\
-Regulation DD & 12 CFR 1030 & Information due au client sur les comptes de dépôt & 46 \\
+Regulation DD & 12 CFR 1030 & Information due au client sur les comptes de dépôt & 59 \\
 \bottomrule
 \end{tabularx}
 \caption{Les textes du corpus}
@@ -94,16 +95,84 @@ L'eCFR fournit les textes en XML. Lire un XML venu d'Internet avec le lecteur st
 
 La recherche ne travaille pas sur des sections entières, souvent longues de plusieurs pages, mais sur des passages. Le découpage suit la structure du texte : un passage par paragraphe de premier niveau, « (a) », « (b) »... La citation d'un passage, comme « 12 CFR 1005.11(c) », désigne alors un endroit précis que n'importe qui peut ouvrir et vérifier.
 
-Deux difficultés ont demandé des règles explicites, chacune couverte par un test :
+Trois difficultés ont demandé des règles explicites, chacune couverte par un test :
 \begin{itemize}
-  \item \textbf{les lettres qui sont aussi des chiffres romains.} « (i) » peut ouvrir le paragraphe (i) d'une section, ou le premier élément d'une liste numérotée en chiffres romains. Une lettre n'ouvre un paragraphe que si elle suit la précédente dans l'alphabet ; pour i, v et x, le paragraphe doit en plus porter un titre, comme c'est l'usage dans ces textes ;
+  \item \textbf{les lettres suivies d'un sous-niveau.} Les définitions commencent souvent par « (a)(1) », sans espace après la lettre : la lettre compte quand même ;
+  \item \textbf{les lettres qui sont aussi des chiffres romains.} « (i) » peut ouvrir le paragraphe (i) d'une section, ou le premier élément d'une liste en chiffres romains. Une lettre n'ouvre un paragraphe que si elle suit la précédente dans l'alphabet. Pour i, v et x, les voisins tranchent : un « (v) » qui suit un « (iv) » appartient à une liste, et un « (i) » suivi de « (ii) » avant « (j) » aussi. Sans indice, en fin de section, le paragraphe doit porter un titre ;
   \item \textbf{les paragraphes trop longs.} Au-delà de 350 mots, un paragraphe est coupé en plusieurs passages, toujours entre deux alinéas et jamais au milieu d'une phrase. Les morceaux gardent la même citation.
 \end{itemize}
+
+La première version ne connaissait que la règle du titre. Elle laissait les définitions de la Regulation E en un seul bloc, et prenait la définition « (i) Person means... » pour un chiffre romain, ce qui fusionnait toute la fin de la section. Je l'ai vu en listant les passages de chaque section avant de construire le jeu de questions, et j'ai corrigé avant toute mesure.
 
 Les paragraphes abrogés (« [Reserved] ») sont retirés : ils n'ont rien à citer. C'est pourquoi la section 1030.10, entièrement abrogée, n'apparaît pas.
 
 \subsection{Résultat}
 
-Le corpus compte 366 passages issus de 53 sections, pour environ 72\,000 mots. Un passage fait 193 mots en médiane et 356 au plus. J'ai vérifié que, dans chaque section, les lettres des passages se suivent sans saut ; la section 1026.13, sur les contestations de facturation, va bien de (a) à (i), comme le texte officiel.
+Le corpus compte 394 passages issus de 53 sections, pour environ 72\,000 mots. Un passage fait 167 mots en médiane et 356 au plus. Deux contrôles automatiques confirment le découpage : dans chaque section, les lettres des passages se suivent sans saut (seule exception, 1030.9, dont le paragraphe (b) est abrogé) ; et aucun alinéa à l'intérieur d'un passage ne commence par la lettre suivante, hormis de vraies listes en chiffres romains.
+
+\section{La recherche}
+
+\subsection{Pourquoi la mesurer à part}
+
+Un modèle de langage ne peut citer que les passages qu'on lui donne. Si la recherche ne trouve pas le bon passage, la meilleure génération du monde ne pourra qu'inventer ou refuser. La recherche se mesure donc seule, avant tout modèle de langage, et sans aucun appel à une API.
+
+\subsection{Le jeu de questions}
+
+J'ai écrit 40 questions comme les poserait un chargé de réclamations, en langage courant : « Is a bank allowed to mail a debit card to someone who did not ask for one? ». Pour chacune, j'ai noté le ou les passages qui contiennent la réponse, après avoir vérifié leur texte. Les questions sont rédigées sans reprendre les mots du règlement, pour ne pas avantager la recherche par mots-clés. Elles couvrent les trois textes (14 sur la Regulation E, 18 sur la Regulation Z, 8 sur la Regulation DD).
+
+Les questions sont réparties en alternance entre deux parties de 20. Le développement sert à choisir la méthode ; le test mesure la méthode retenue. La règle de choix a été écrite dans le script avant de le lancer : le meilleur rappel@5 sur le développement, puis le meilleur MRR, puis la méthode la plus simple.
+
+Deux mesures sont suivies :
+\begin{itemize}
+  \item le \textbf{rappel@5} : la part des questions dont un bon passage figure parmi les 5 premiers résultats. C'est ce que lira le modèle de langage ;
+  \item le \textbf{MRR} (\emph{mean reciprocal rank}) : la moyenne de 1/rang du premier bon passage. Il vaut 1 si le bon passage arrive toujours premier, et récompense un bon passage placé haut.
+\end{itemize}
+
+Ce jeu a une limite : je l'ai écrit en connaissant le corpus. Des questions réelles seraient plus variées, et souvent plus floues. Les résultats valent pour des questions bien posées.
+
+\subsection{Les trois méthodes}
+
+\begin{itemize}
+  \item \textbf{Mots-clés (BM25)} : un passage gagne des points pour chaque mot de la question qu'il contient, d'autant plus que le mot est rare dans le corpus. C'est la méthode classique des moteurs de recherche.
+  \item \textbf{Sens (embeddings)} : chaque passage et chaque question deviennent un vecteur de 384 nombres, calculé par un petit modèle (\texttt{BAAI/bge-small-en-v1.5}) qui tourne sur le processeur, sans API ni quota. Deux textes de même sens ont des vecteurs proches, même avec des mots différents. Le calcul des vecteurs du corpus prend environ cinq minutes ; ils sont gardés sur disque avec une empreinte du modèle et des textes, et recalculés seulement si l'un des deux change.
+  \item \textbf{Hybride} : les deux classements sont fusionnés par rangs réciproques. Chaque méthode donne $1/(60+\text{rang})$ à ses passages, et l'on additionne. Cette fusion ne demande aucun poids à régler.
+\end{itemize}
+
+\subsection{Résultats}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{recherche.png}
+\caption{Rappel@5 de chaque méthode, sur les questions de développement et de test.}
+\end{figure}
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{@{}l r r r r@{}}
+\toprule
+& \multicolumn{2}{c}{Développement} & \multicolumn{2}{c}{Test} \\
+Méthode & Rappel@5 & MRR & Rappel@5 & MRR \\
+\midrule
+Mots-clés (BM25) & 45~\% & 0,34 & 45~\% & 0,21 \\
+\textbf{Sens (embeddings)} & \textbf{80~\%} & \textbf{0,55} & \textbf{85~\%} & \textbf{0,56} \\
+Hybride & 65~\% & 0,51 & 75~\% & 0,53 \\
+\bottomrule
+\end{tabular}
+\caption{Recherche sur 20 questions de développement et 20 questions de test}
+\end{table}
+
+La recherche par le sens est retenue : elle trouve un bon passage parmi les 5 premiers pour 80~\% des questions de développement, et 85~\% des questions de test. Sur 10 résultats, ce taux monte à 95~\% et 90~\%.
+
+\subsection{Analyse}
+
+\textbf{Les mots-clés échouent sur le vocabulaire.} Un chargé de réclamations parle de « debit card » et de « paper record » ; le règlement dit « access device » et « receipt ». BM25 ne voit pas que ces mots désignent la même chose : il manque ces deux questions, et retrouve moins d'une question sur deux au total. C'est l'écart que la recherche par le sens comble.
+
+\textbf{La fusion n'aide pas ici.} Elle est souvent présentée comme le meilleur choix, mais elle donne autant de poids aux deux méthodes. Quand l'une est nettement plus faible, elle fait reculer de bons passages trouvés par l'autre. Sur ce corpus et ces questions, l'hybride fait moins bien que la recherche par le sens seule.
+
+\textbf{Les échecs restants sont instructifs.} Sur le test, la recherche par le sens manque deux questions dans les 5 premiers résultats, et une troisième n'arrive qu'au 6\textsuperscript{e} rang : l'envoi d'une carte de débit non demandée (le règlement parle d'« access device »), la durée de conservation des preuves de conformité, et le délai pour signaler une erreur. Le même écart de vocabulaire se retrouve dans les échecs du développement.
+
+\subsection{Conséquences pour la génération}
+
+Une question sur sept environ n'aura pas son bon passage dans les 5 premiers résultats. Le modèle de langage devra alors refuser plutôt que répondre à côté : c'est le rôle du refus, et ce sera mesuré à l'étape 4. Deux pistes pourront être évaluées sur le développement : donner plus de passages au modèle (le rappel@10 atteint 95~\% sur le développement), et ajouter un petit glossaire qui traduit le vocabulaire courant en vocabulaire réglementaire.
 
 \end{document}
