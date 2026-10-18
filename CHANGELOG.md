@@ -4,11 +4,17 @@ Les évolutions notables du projet sont notées ici, selon le format [Keep a Cha
 
 ## [Non publié]
 
+## [v0.2] - 2026-10-18
+
+Bilan ([ADR 0003](docs/adr/0003-rag-avec-citations-verifiees.md)) : sur le test, 13 réponses sur 13 citent une source vérifiable et 20 questions hors corpus sur 20 sont refusées, tentatives de détournement comprises ; les deux critères du cadrage sont atteints, et aucune réponse ne cite une mauvaise source. Le RAG refuse en revanche 7 questions de test sur 20 auxquelles il aurait pu répondre.
+
 ### Ajouté
-- Corpus réglementaire du RAG (`complaint_triage.rag`, commande `python -m complaint_triage.rag`) : Regulation E (sous-partie A), Regulation Z (sous-parties B et G) et Regulation DD, téléchargées depuis l'API officielle de l'eCFR dans leur version du 15 octobre 2026, lues avec defusedxml et découpées en 366 passages citables, un par paragraphe de premier niveau (« 12 CFR 1005.11(b) »), avec un lien vers le texte officiel et un manifeste des sources.
+- Corpus réglementaire du RAG (`complaint_triage.rag`, commande `python -m complaint_triage.rag`) : Regulation E (sous-partie A), Regulation Z (sous-parties B et G) et Regulation DD, téléchargées depuis l'API officielle de l'eCFR dans leur version du 15 octobre 2026, lues avec defusedxml et découpées en 394 passages citables, un par paragraphe de premier niveau (« 12 CFR 1005.11(b) »), avec un lien vers le texte officiel et un manifeste des sources.
 - Recherche des passages (`complaint_triage.rag.retrieval`) : mots-clés (BM25), sens (embeddings locaux `BAAI/bge-small-en-v1.5` avec fastembed, gardés en cache sur disque) et fusion par rangs réciproques. Jeu de 40 questions avec leurs passages attendus (`evaluation/rag/questions-recherche.csv`), réparties entre développement et test. La recherche par le sens est retenue sur le développement : rappel@5 de 80 %, puis 85 % sur le test, contre 45 % pour les mots-clés.
 - Génération avec citations vérifiées (`complaint_triage.rag.answer`) : Gemini répond dans un format JSON imposé, chaque citation donne un passage et un extrait exact, et le code refuse toute la réponse si une seule citation est invérifiable. Question nettoyée et limitée à 1 000 caractères.
 - Accès à Gemini (`complaint_triage.rag.llm`) sur l'offre gratuite, avec cache des réponses, plafond de 300 appels par jour et 10 par minute contrôlé avant l'envoi, arrêt sur une réponse 429 ; clé dans `.env`, transmise par en-tête. Commande `scripts/rag/ask.py` pour poser une question.
+- Évaluation des réponses (`scripts/rag/evaluate_answers.py`) : 40 questions hors corpus (`evaluation/rag/questions-hors-corpus.csv`) en plus des 40 du corpus, estimation des appels avant de lancer, règle de choix fixée avant le premier appel. 10 passages lus, retenus sur le développement. Analyse des refus à tort (`docs/v0.2-rag/data/refus-a-tort.csv`).
+- Rapport v0.2 complet en LaTeX et en PDF (11 pages) et note de décision ADR 0003.
 
 ### Corrigé
 - Le découpage du corpus laissait les définitions de la Regulation E en un seul bloc (« (a)(1) » sans espace) et prenait certaines lettres pour des chiffres romains. Les voisins de chaque marqueur tranchent désormais ; le corpus passe de 366 à 394 passages.

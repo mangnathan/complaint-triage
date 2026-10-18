@@ -1,0 +1,3 @@
+k,questions_dans_le_corpus,correctes,autre_source,refus_a_tort,questions_hors_corpus,refus_hors_corpus,taux_refus_hors_corpus,reponses_avec_source,reponses
+5,20,16,0,4,20,20,1.0,16,16
+10,20,17,0,3,20,20,1.0,17,17

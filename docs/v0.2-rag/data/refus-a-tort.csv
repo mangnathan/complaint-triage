@@ -1,0 +1,11 @@
+id,partie,cause,detail
+q05,developpement,extrait recompose,"Deux morceaux non contigus recollés sans le signaler (les points (i) et (ii) sautés)"
+q13,developpement,passage non retrouve,"La définition attendue (1005.2(m)) n'est pas parmi les 10 passages lus"
+q25,developpement,passage non fourni,"Citation de 1026.10(b)-3, absent des passages lus"
+q06,test,identifiant plus precis,"Extrait exact, mais cité sous « 1005.11(d)(1) » au lieu du passage « 1005.11(d) »"
+q08,test,passage non retrouve,"Le règlement parle d'« access device » ; 1005.5 n'est pas parmi les passages lus"
+q12,test,passage non retrouve,"1005.13(b) absent des passages lus ; le modèle note que 1030.9(c) concerne un autre texte"
+q26,test,majuscule,"Extrait exact au premier mot près : « any » au lieu de « Any »"
+q28,test,coupure signalee,"Extrait exact en deux morceaux, la coupure étant marquée par « ... »"
+q32,test,refus du modele,"Le passage attendu (1030.4(a)) était lu ; le modèle l'a jugé insuffisant"
+q36,test,extrait reformule,"« The totals required » au lieu de « The disclosures required »"

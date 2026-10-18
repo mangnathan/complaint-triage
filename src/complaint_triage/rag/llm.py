@@ -101,6 +101,10 @@ class CachedModel:
         key = json.dumps([self.name, system, prompt, schema], sort_keys=True)
         return self.cache_dir / f"{hashlib.sha256(key.encode()).hexdigest()}.json"
 
+    def is_cached(self, system: str, prompt: str, schema: dict[str, Any]) -> bool:
+        """Vrai si la réponse est déjà sur disque : sert à estimer les appels avant de lancer."""
+        return self._path(system, prompt, schema).exists()
+
     def generate(self, system: str, prompt: str, schema: dict[str, Any]) -> str:
         path = self._path(system, prompt, schema)
         if path.exists():

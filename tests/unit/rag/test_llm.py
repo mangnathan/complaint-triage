@@ -96,6 +96,8 @@ def test_a_cached_answer_costs_no_call(tmp_path: Path) -> None:
 
     assert first == second
     assert inner.calls == 2
+    assert model.is_cached("system", "prompt", SCHEMA)
+    assert not model.is_cached("system", "never asked", SCHEMA)
 
 
 def gemini(tmp_path: Path, post: Any) -> GeminiModel:
