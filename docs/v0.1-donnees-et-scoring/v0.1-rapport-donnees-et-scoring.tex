@@ -10,7 +10,7 @@
 
 \begin{document}
 
-\pagedegarde{Collecte des données, exploration et premiers modèles}{Version de travail, octobre 2026}{Étapes 1 à 5 sur 8 rédigées, et correction de la métrique}
+\pagedegarde{Collecte des données, exploration et premiers modèles}{Version de travail, octobre 2026}{Étapes 1 à 6 sur 8 rédigées, avec la correction de la métrique}
 
 \setcounter{tocdepth}{1}
 \tableofcontents
@@ -721,5 +721,84 @@ Le gain de 3 points mesuré à l'étape 5 pour la variante B venait des compteur
 L'établissement devient au contraire une variable légitime. Dans sa propre file, une banque ne gagne rien à savoir qui elle est ; en revanche, le modèle peut apprendre les habitudes propres à chaque établissement, comme le ferait un modèle entraîné sur l'historique d'une seule banque. C'est pourquoi la variante D, avec son meilleur réglage (profondeur 4, feuille minimale 100), est désormais le modèle sans texte retenu.
 
 La leçon dépasse ce projet. Un modèle peut obtenir un excellent score en exploitant une information qui ne lui servirait à rien en conditions réelles, et seule une métrique fidèle à la situation du client permet de s'en apercevoir. C'est en lisant ce que le modèle utilisait que le défaut est apparu.
+
+\section{Ce qu'apporte le texte}
+
+\subsection{Objectif}
+
+Le CFPB ne publie plus le texte des réclamations depuis le 14 août 2026 : le modèle de production devra s'en passer. Mesurer ce que le texte apporte reste utile, pour savoir ce que l'on perd, et pour une banque qui disposerait du texte de ses propres réclamations. La question posée est donc : le texte d'une réclamation apporte-t-il assez d'information pour justifier un modèle ?
+
+\subsection{Les données et les précautions}
+
+Les récits existent pour 197\,291 réclamations d'entraînement, 40\,990 de validation et 40\,432 de test. Trois précautions issues de l'exploration s'appliquent :
+\begin{itemize}
+  \item tous les modèles sont comparés sur les mêmes réclamations, celles qui ont un récit, parce que le récit n'est publié qu'avec l'accord du consommateur et que ces réclamations sont plus souvent indemnisées ;
+  \item la mesure principale exclut les récits de validation déjà présents mot pour mot dans l'entraînement ; ils ne sont que 59 (0,1~\%), les campagnes de lettres types étant concentrées dans le temps ;
+  \item dans l'entraînement, chaque récit recopié n'est gardé qu'une fois (4\,432 copies retirées), pour qu'une lettre type ne pèse pas autant que des centaines de réclamations différentes.
+\end{itemize}
+
+Les masques du CFPB (\texttt{XXXX}) sont retirés et les montants remplacés par un mot commun.
+
+\subsection{Les deux modèles de texte}
+
+La référence textuelle est une régression logistique sur une représentation TF-IDF : la fréquence de chaque mot et de chaque paire de mots, pondérée pour donner moins de poids aux mots présents partout. Elle s'entraîne en quelques minutes sur un ordinateur portable.
+
+Le modèle de langage est DistilRoBERTa, une version allégée de RoBERTa, fine-tunée pour prédire l'indemnisation à partir du récit. Il lit les 256 premiers tokens, soit environ 200 mots : le récit médian (165 mots) est lu en entier, 29~\% des récits sont tronqués. L'entraînement dure au plus deux passages sur les données et s'arrête si la perte sur le jeu d'arrêt ne s'améliore plus pendant trois évaluations successives. Il a tourné sur un GPU de Google Colab, en une quarantaine de minutes. Le code d'entraînement est dans le paquet ; le notebook Colab ne fait que le lancer, et le fichier envoyé sur Colab ne contient pas la période de test.
+
+Deux combinaisons ont aussi été évaluées : la moyenne des rangs du XGBoost retenu et de chaque modèle de texte, à poids égaux. Les poids ont été fixés à l'avance plutôt que réglés sur la validation.
+
+\subsection{Résultats}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{texte-validation.png}
+\caption{Capture@10~\% dans la file de chaque banque, sur les 40\,931 récits de validation jamais vus à l'entraînement.}
+\end{figure}
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{@{}l r r r@{}}
+\toprule
+Modèle & Capture@10~\% & \shortstack[r]{Écart avec H0 propre\\à la banque [IC 95~\%]} & PR-AUC \\
+\midrule
+H0 propre à la banque & 19,0~\% & -- & 0,37 \\
+XGBoost (sans texte) & 18,7~\% & $-0{,}4$ [$-1{,}0$ ; $+0{,}3$] & 0,37 \\
+TF-IDF (texte seul) & 21,8~\% & $+2{,}8$ [$1{,}8$ ; $3{,}6$] & 0,39 \\
+DistilRoBERTa (texte seul) & 22,0~\% & $+3{,}0$ [$2{,}0$ ; $4{,}0$] & 0,41 \\
+XGBoost + TF-IDF & 21,8~\% & $+2{,}8$ [$2{,}0$ ; $3{,}6$] & 0,41 \\
+XGBoost + DistilRoBERTa & 21,6~\% & $+2{,}6$ [$1{,}8$ ; $3{,}4$] & 0,42 \\
+\bottomrule
+\end{tabular}
+\caption{Modèles de texte sur la validation, dans la file de chaque banque}
+\end{table}
+
+\subsection{Analyse}
+
+Le texte apporte un gain réel : environ 3 points de Capture@10~\% au-dessus des taux propres à chaque banque, avec un intervalle qui ne touche jamais zéro. Ce gain subsiste alors que la mesure neutralise l'effet du nom de la banque : le contenu du récit, et pas seulement l'établissement qu'il cite, renseigne sur l'issue.
+
+Le modèle de langage fait à peine mieux que la référence TF-IDF : 22,0~\% contre 21,8~\%. L'écart de 0,2 point est bien plus petit que l'incertitude de chaque mesure. Un fine-tuning d'une quarantaine de minutes sur GPU n'apporte donc rien de mesurable par rapport à un modèle linéaire entraîné en quelques minutes sur un processeur. Pour cette tâche, comprendre l'ordre et le sens des phrases ne s'ajoute pas visiblement à la présence des mots. La troncature à 256 tokens peut y contribuer : près d'un récit sur trois n'est lu qu'en partie.
+
+Les combinaisons avec XGBoost n'apportent rien. C'est cohérent avec la section précédente : sans texte, XGBoost ne fait pas mieux que les taux propres à chaque banque, il n'a donc rien à ajouter au texte.
+
+Surtout, aucun modèle n'atteint la barre fixée au cadrage. Même la borne haute de l'intervalle du meilleur modèle (4,0 points) reste en dessous des 5 points exigés.
+
+\subsection{Conséquences}
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}Y Y@{}}
+\toprule
+Constat & Conséquence \\
+\midrule
+Le texte apporte environ 3 points, de façon certaine & Sa valeur est connue ; elle compte pour une banque qui dispose du texte de ses réclamations \\
+Aucun modèle n'atteint 5 points sur la validation & La règle H0 propre à chaque banque est le candidat le plus probable pour la décision finale \\
+Le modèle de langage égale le TF-IDF & À résultat égal, le modèle le plus simple est préférable \\
+Le texte n'existe plus en production & Le système déployé ne pourra de toute façon s'appuyer que sur les données structurées \\
+\bottomrule
+\end{tabularx}
+\caption{Bilan de l'étape 6}
+\end{table}
+
+La décision sera prise une seule fois, sur la période de test, après l'analyse d'équité de l'étape 7.
 
 \end{document}
