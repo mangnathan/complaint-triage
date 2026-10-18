@@ -1,4 +1,8 @@
-"""Mesure de la recherche sur des questions dont on connaît le ou les bons passages."""
+"""Mesure de la recherche et des réponses, sur des questions écrites à l'avance.
+
+Les questions dans le corpus portent le ou les passages qui contiennent la réponse. Les questions
+hors corpus n'ont pas de réponse dans les textes : le RAG doit les refuser.
+"""
 
 from __future__ import annotations
 
@@ -7,16 +11,37 @@ from pathlib import Path
 
 import pandas as pd
 
+from complaint_triage.rag.answer import ANSWERED, Answer
 from complaint_triage.rag.retrieval import Retriever
 
 DEVELOPMENT = "developpement"
 TEST = "test"
 K_VALUES = (1, 3, 5, 10)
 
+CORRECT = "correcte"
+OTHER_SOURCE = "autre source"
+REFUSAL = "refus"
+WRONGLY_ANSWERED = "repondue a tort"
+
+
+def classify(answer: Answer, expected: Sequence[str] | None) -> str:
+    """Classe une réponse. `expected` vaut None pour une question hors corpus.
+
+    Dans le corpus : correcte si elle cite au moins un passage attendu, « autre source » si elle
+    en cite d'autres (à relire), refus sinon. Hors corpus : refus, ou répondue à tort.
+    """
+    if answer.status != ANSWERED:
+        return REFUSAL
+    if expected is None:
+        return WRONGLY_ANSWERED
+    cited = {source.passage_id for source in answer.sources}
+    return CORRECT if cited & set(expected) else OTHER_SOURCE
+
 
 def load_questions(path: Path) -> pd.DataFrame:
     questions = pd.read_csv(path)
-    questions["attendus"] = questions["passages_attendus"].str.split(";")
+    if "passages_attendus" in questions:
+        questions["attendus"] = questions["passages_attendus"].str.split(";")
     if questions["id"].duplicated().any():
         raise ValueError("Deux questions ont le même identifiant.")
     if not set(questions["partie"]) <= {DEVELOPMENT, TEST}:
