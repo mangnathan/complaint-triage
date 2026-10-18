@@ -158,6 +158,14 @@ def section_passages(
     return passages
 
 
+def passages_by_id(frame: pd.DataFrame) -> dict[str, dict[str, str]]:
+    """Passages indexés par identifiant, pour retrouver le texte d'un résultat de recherche."""
+    return {
+        str(row["passage_id"]): {str(k): str(v) for k, v in row.items()}
+        for row in frame.to_dict("records")
+    }
+
+
 def passages_frame(passages: list[Passage]) -> pd.DataFrame:
     frame = pd.DataFrame([asdict(p) for p in passages])
     if frame["passage_id"].duplicated().any():
