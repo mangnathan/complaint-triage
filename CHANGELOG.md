@@ -21,6 +21,10 @@ Les évolutions notables du projet sont notées ici, selon le format [Keep a Cha
 - Script d'expériences tracées dans MLflow (`scripts/experiments/train_xgboost.py`) : 4 variantes et 8 réglages fixés à l'avance. Meilleur modèle éligible sur la validation : 23,4 % de Capture@10 %, soit +3,1 points sur H0 [2,5 ; 3,8], sous la barre de +5 points du cadrage. L'établissement ferait gagner 7 points de plus mais reste hors du cadre d'une banque unique.
 - Rapport v0.1, section 5.
 
+- Comparaison des modèles de texte dans la file de chaque banque (`scripts/experiments/evaluate_text_models.py`), sur les récits de validation jamais vus à l'entraînement : TF-IDF +2,8 points sur H0 propre à la banque [1,8 ; 3,6], DistilRoBERTa fine-tuné sur Colab +3,0 points [2,0 ; 4,0]. Le texte apporte un gain réel, sous la marge de 5 points ; le modèle de langage ne fait pas mieux que le TF-IDF.
+- Reprise automatique du fine-tuning au dernier point de sauvegarde, stocké dans Google Drive.
+- Rapport v0.1, sections 6 (correction de la métrique) et 7 (texte).
+
 ### Corrigé
 - La Capture@10 % classait toutes les banques ensemble et avantageait les modèles capables de deviner la banque, ce qui ne sert à rien à un établissement qui trie sa propre file. Elle est désormais calculée dans la file de chaque établissement, semaine par semaine, et la référence devient H0 propre à la banque (ses taux historiques par motif, rapprochés de ceux du marché). La marge exigée ne change pas. Défaut repéré grâce aux mots les plus importants de la référence textuelle, qui étaient des noms de banques.
 - Conséquence sur l'étape 5 : réévalué dans la file de chaque banque, aucun modèle XGBoost ne fait mieux que H0 propre à la banque (19,4 % de Capture@10 % sur la validation). Le gain de 3 points mesuré d'abord venait des compteurs de volume par établissement, qui trahissaient la banque.
