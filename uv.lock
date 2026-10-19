@@ -619,7 +619,6 @@ demo = [
     { name = "streamlit" },
 ]
 dev = [
-    { name = "huggingface-hub" },
     { name = "mypy" },
     { name = "pandas-stubs" },
     { name = "pre-commit" },
@@ -648,7 +647,6 @@ requires-dist = [
 [package.metadata.requires-dev]
 demo = [{ name = "streamlit", specifier = ">=1.40" }]
 dev = [
-    { name = "huggingface-hub", specifier = ">=1.33" },
     { name = "mypy", specifier = ">=1.18" },
     { name = "pandas-stubs", specifier = ">=2.2" },
     { name = "pre-commit", specifier = ">=4.3" },
