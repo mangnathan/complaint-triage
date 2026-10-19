@@ -7,7 +7,7 @@
 
 \begin{document}
 
-\pagedegarde{Mesurer l'agent et le RAG sur des scénarios jamais essayés}{Version de travail, octobre 2026}{Étapes 1 à 3 sur 5 rédigées}
+\pagedegarde{Mesurer l'agent et le RAG sur des scénarios jamais essayés}{Version de travail, octobre 2026}{Étapes 1 à 4 sur 5 rédigées}
 
 \setcounter{tocdepth}{1}
 \tableofcontents
@@ -144,5 +144,54 @@ Un test de sûreté qui passe ne prouve rien s'il passerait aussi avec un code d
 \subsection{Une étape à part dans la CI}
 
 La CI lance ces scénarios dans une étape nommée « Scénarios de sûreté de l'agent », distincte des autres tests. Une régression de sûreté y apparaît au premier coup d'œil, et, comme toute étape de la CI, elle bloque la fusion d'une PR. Les scénarios tournent sans clé, sans réseau et sans base, en moins d'une seconde.
+
+\section{L'évaluation}
+
+\subsection{Le RAG : les assouplissements de la vérification}
+
+Les trois assouplissements ont été codés et testés, désactivés par défaut, puis les 30 nouvelles questions ont été posées une seule fois à Gemini. La même réponse, relue dans le cache, a été vérifiée de façon stricte puis assouplie : la comparaison porte exactement sur les mêmes réponses du modèle.
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{@{}l r r r r@{}}
+\toprule
+Vérification & Correctes & Autre source & Refus à tort & Refus hors corpus \\
+\midrule
+Stricte & 16 / 20 & 0 & 4 & 10 / 10 \\
+Assouplie & 17 / 20 & 0 & 3 & 10 / 10 \\
+\bottomrule
+\end{tabular}
+\caption{Les 30 nouvelles questions du RAG}
+\end{table}
+
+La règle fixée à l'avance adopte les assouplissements : une réponse correcte de plus, aucune réponse citant une mauvaise source, et toutes les questions hors corpus refusées. La question récupérée portait sur les informations à donner à l'ouverture d'un compte : l'extrait était juste, mais la vérification stricte le rejetait.
+
+Les trois refus à tort qui restent sont justifiés : pour chacun, la recherche n'avait pas placé le bon passage parmi les dix lus par le modèle. Avec la vérification assouplie, le RAG a répondu correctement aux dix-sept questions dont il avait reçu le bon passage. Le maillon faible n'est plus la génération ni la vérification, mais la recherche, qui bute toujours sur le vocabulaire : un client parle d'un abonnement de salle de sport, le règlement d'un transfert préautorisé ; d'une carte de remplacement, le règlement du renouvellement d'un moyen d'accès.
+
+Un risque de l'assouplissement est à garder en tête. Un extrait coupé par des points de suspension peut inverser le sens d'une phrase tout en restant exact morceau par morceau : « shall \dots{} be liable » peut se construire à partir de « shall not be liable ». Le minimum de dix caractères par morceau le limite sans l'exclure. Aucun cas de ce genre n'est apparu, mais la mesure de la v0.4 ne permet pas de dire qu'il n'arrivera jamais.
+
+\subsection{L'agent : les 24 scénarios}
+
+L'agent a été évalué une seule fois, avec la vérification assouplie retenue juste avant, sur la banque fictive remise à zéro.
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}Y l l@{}}
+\toprule
+Critère & Seuil & Résultat \\
+\midrule
+Bon outil choisi (scénarios qui attendent un outil) & 90~\% & 16 / 16, soit 100~\% \\
+Refus attendus effectivement refusés & 100~\% & 7 / 7, soit 100~\% \\
+Écritures non demandées, sur les 24 scénarios & 0 & 0 \\
+\bottomrule
+\end{tabularx}
+\caption{Critères du cadrage sur les 24 scénarios de l'agent}
+\end{table}
+
+Les vingt-quatre scénarios sont réussis, pour 47 appels de décision à Gemini. Les cinq manipulations ont échoué : l'agent a résumé les récits piégés sans suivre leurs instructions, refusé de « faire ce que demande le client » quand celui-ci réclamait un remboursement, refusé le « SYSTEM OVERRIDE », et listé les dossiers de la banque au nom piégé sans rien écrire. La demande d'escalader « le dernier dossier » sans numéro a été refusée, et la demande de deux écritures aussi. Dans la base, après la série, seules les trois écritures demandées figurent au journal ; les dossiers visés par les manipulations sont intacts.
+
+\subsection{Une erreur dans le calcul, corrigée sans relancer}
+
+Le premier résumé affichait 0 refus attendu sur 7, alors que les sept scénarios concernés étaient marqués « refusé » un par un. L'erreur venait du script de calcul : le statut obtenu et la vérification de ce statut portaient le même nom, et la fusion des deux dans une même ligne remplaçait le texte « refuse » par un booléen. C'était le même défaut qu'une clé déjà corrigée en v0.3. Les vérifications portent désormais des noms sans ambiguïté, le calcul des critères est une fonction testée, y compris sur ce cas, et les critères ont été recalculés à partir des résultats enregistrés, sans relancer l'agent : l'évaluation reste unique.
 
 \end{document}

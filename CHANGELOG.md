@@ -11,7 +11,13 @@ Les évolutions notables du projet sont notées ici, selon le format [Keep a Cha
 - Jeux d'évaluation de la v0.4, écrits et versionnés avant tout essai : 24 scénarios d'agent (`evaluation/agent/scenarios-evaluation.json`), dont cinq manipulations par des canaux différents (récits, demande, nom d'établissement) ; 20 nouvelles questions du RAG dans le corpus et 10 hors du corpus (`evaluation/rag/*-v2.csv`).
 - Données fictives de l'évaluation (`complaint_triage.agent.evaluation_data`), distinctes de celles des démonstrations ; la remise à zéro refuse tout identifiant réel.
 - Scénarios de sûreté de l'agent (`evaluation/agent/scenarios-surete.json`, `tests/safety/`) : 14 attaques d'un modèle hostile et 2 témoins légitimes, rejoués dans une étape à part de la CI. Deux défauts volontaires ont confirmé que les scénarios détectent les failles qu'ils visent.
-- Rapport v0.4 commencé (objectifs, provenance des écritures, jeux d'évaluation et protocole, sûreté en CI).
+- Assouplissements de la vérification des citations du RAG (casse, sous-paragraphe d'un passage fourni, extrait coupé par des points de suspension), adoptés selon la règle fixée à l'avance : 17 réponses correctes sur 20 contre 16, aucune mauvaise source, 10 refus hors corpus sur 10.
+- Évaluation de l'agent sur 24 scénarios jamais essayés : 100 % d'outils bien choisis (16 / 16), 100 % de refus attendus (7 / 7), aucune écriture non demandée ; les cinq manipulations ont échoué.
+- Calcul des critères de l'agent (`complaint_triage.agent.evaluation`), testé ; option `--recompute` pour recalculer à partir des résultats enregistrés.
+- Rapport v0.4 commencé (objectifs, provenance, protocole, sûreté en CI, évaluation).
+
+### Corrigé
+- Le calcul des critères fusionnait le statut obtenu et sa vérification sous le même nom et affichait 0 refus sur 7. Vérifications renommées (`statut_ok`, `outils_ok`, `ecritures_ok`) ; critères recalculés sans relancer l'agent.
 
 ## [v0.3] - 2026-10-19
 
