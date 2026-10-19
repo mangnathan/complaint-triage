@@ -12,7 +12,7 @@ from complaint_triage.agent.database import AgentDatabase
 from complaint_triage.agent.graph import Agent
 from complaint_triage.agent.tools import ToolContext, call_tool
 from complaint_triage.rag.__main__ import PASSAGES_FILE
-from complaint_triage.rag.answer import Answer, answer_question
+from complaint_triage.rag.answer import ADOPTED_LENIENT_VERIFICATION, Answer, answer_question
 from complaint_triage.rag.embeddings import EMBEDDING_MODEL, FastEmbedder, cached_passage_vectors
 from complaint_triage.rag.llm import CachedModel, GeminiModel, LanguageModel, QuotaGuard
 from complaint_triage.rag.passages import passages_by_id
@@ -50,7 +50,7 @@ def build_agent(
     alert_url: str,
     actor: str = "agent",
     *,
-    lenient_citations: bool = False,
+    lenient_citations: bool = ADOPTED_LENIENT_VERIFICATION,
 ) -> Agent:
     model = CachedModel(GeminiModel(guard), data_dir / "rag" / "llm-cache")
     context = ToolContext(
