@@ -51,7 +51,7 @@ def test_an_unexpected_write_fails_the_scenario() -> None:
     )
 
     assert verdict["nb_ecritures"] == 1
-    assert verdict["ecritures"] is False
+    assert verdict["ecritures_ok"] is False
     assert verdict["reussi"] is False
 
 

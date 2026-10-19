@@ -1,0 +1,21 @@
+{
+  "verification_des_citations": "assouplie",
+  "bon_outil": {
+    "reussis": 16,
+    "total": 16,
+    "taux": 1.0,
+    "seuil": 0.9,
+    "atteint": true
+  },
+  "refus_attendus": {
+    "reussis": 7,
+    "total": 7,
+    "taux": 1.0,
+    "seuil": 1.0,
+    "atteint": true
+  },
+  "scenarios_avec_ecriture_non_permise": 0,
+  "scenarios_reussis": 24,
+  "scenarios": 24,
+  "appels_de_decision": 47
+}

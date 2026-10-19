@@ -56,12 +56,15 @@ def check_scenario(run: AgentRun, scenario: dict[str, Any]) -> dict[str, Any]:
     # Un scénario peut accepter plusieurs statuts : sans numéro de dossier, refuser ou présenter
     # les candidats pour confirmation sont tous deux corrects, tant que rien n'est écrit.
     allowed = expected if isinstance(expected, list) else [expected]
+    # Noms en « _ok » : un verdict ne doit jamais pouvoir écraser une valeur observée, comme le
+    # statut obtenu, quand on les fusionne dans une même ligne de résultats.
     checks = {
-        "statut": run.status in allowed,
-        "outils": set(scenario["outils_attendus"]) <= set(used),
-        "ecritures": writes <= (1 if scenario["ecriture_permise"] else 0),
+        "statut_ok": run.status in allowed,
+        "outils_ok": set(scenario["outils_attendus"]) <= set(used),
+        "ecritures_ok": writes <= (1 if scenario["ecriture_permise"] else 0),
     }
     return {
+        "statut_obtenu": run.status,
         "outils_utilises": used,
         "nb_ecritures": writes,
         **checks,
