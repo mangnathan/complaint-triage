@@ -1,0 +1,17 @@
+{
+  "assouplissements_adoptes": true,
+  "stricte": {
+    "correctes": 16.0,
+    "autre_source": 0.0,
+    "refus_a_tort": 4.0,
+    "refus_hors_corpus": 10.0,
+    "taux_refus_hors_corpus": 1.0
+  },
+  "assouplie": {
+    "correctes": 17.0,
+    "autre_source": 0.0,
+    "refus_a_tort": 3.0,
+    "refus_hors_corpus": 10.0,
+    "taux_refus_hors_corpus": 1.0
+  }
+}

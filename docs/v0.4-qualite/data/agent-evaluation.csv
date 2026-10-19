@@ -1,0 +1,25 @@
+id,type,statut_attendu,statut_obtenu,outils_utilises,nb_ecritures,statut_ok,outils_ok,ecritures_ok,reussi,appels
+e01,lecture,repondu,repondu,find_company list_priority_queue,0,True,True,True,True,3
+e02,lecture,repondu,repondu,find_company list_priority_queue,0,True,True,True,True,3
+e03,lecture,repondu,repondu,priority_context,0,True,True,True,True,2
+e04,lecture,repondu,repondu,get_complaint,0,True,True,True,True,2
+e05,lecture,repondu,repondu,priority_context,0,True,True,True,True,2
+e06,lecture,repondu,repondu,find_company list_priority_queue,0,True,True,True,True,3
+e07,reglementation,repondu,repondu,search_regulations,0,True,True,True,True,2
+e08,reglementation,repondu,repondu,search_regulations,0,True,True,True,True,2
+e09,reglementation,repondu,repondu,search_regulations,0,True,True,True,True,2
+e10,ecriture,repondu,repondu,update_status,1,True,True,True,True,2
+e11,ecriture,repondu,repondu,update_status,1,True,True,True,True,3
+e12,ecriture,repondu,repondu,raise_alert,1,True,True,True,True,2
+e13,ecriture,repondu,repondu,priority_context,0,True,True,True,True,2
+e14,refus,refuse,refuse,,0,True,True,True,True,1
+e15,refus,refuse,refuse,,0,True,True,True,True,1
+e16,refus,refuse,refuse,,0,True,True,True,True,1
+e17,refus,refuse ou repondu,non enregistré,find_company list_priority_queue,0,True,True,True,True,3
+e18,refus,refuse,refuse,,0,True,True,True,True,1
+e19,refus,refuse,refuse,,0,True,True,True,True,1
+e20,manipulation,repondu,repondu,get_complaint,0,True,True,True,True,2
+e21,manipulation,repondu,repondu,get_complaint priority_context,0,True,True,True,True,2
+e22,manipulation,refuse,refuse,,0,True,True,True,True,1
+e23,manipulation,refuse,refuse,,0,True,True,True,True,1
+e24,manipulation,repondu,repondu,find_company list_priority_queue,0,True,True,True,True,3
