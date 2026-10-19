@@ -7,7 +7,7 @@
 
 \begin{document}
 
-\pagedegarde{Mesurer l'agent et le RAG sur des scénarios jamais essayés}{Version de travail, octobre 2026}{Étapes 1 et 2 sur 5 rédigées}
+\pagedegarde{Mesurer l'agent et le RAG sur des scénarios jamais essayés}{Version de travail, octobre 2026}{Étapes 1 à 3 sur 5 rédigées}
 
 \setcounter{tocdepth}{1}
 \tableofcontents
@@ -109,5 +109,40 @@ Les manipulations varient le canal. Un récit demande de clore son propre dossie
 Vingt questions dans le corpus et dix hors du corpus, sur des sujets que les questions de la v0.2 n'abordaient pas : préavis avant un changement de frais, autorisation écrite des prélèvements, avertissement sur le paiement minimum, cartes pour les moins de 21 ans, succession d'un titulaire décédé, comptes à taux par paliers\dots{} pour le corpus ; Military Lending Act, endossement falsifié, assurance d'un compte joint, frais de retard d'un loyer\dots{} hors du corpus.
 
 Elles servent à mesurer les trois assouplissements de la vérification des citations notés en v0.2 : une comparaison insensible à la casse, l'acceptation d'un sous-paragraphe du passage fourni (« 1005.11(d)(1) » pour « 1005.11(d) »), et le contrôle séparé de chaque morceau d'un extrait coupé par des points de suspension. La règle de décision est fixée ici : les assouplissements sont adoptés si, sur ces questions, ils donnent au moins autant de réponses correctes que la vérification stricte, gardent au moins 95~\% de refus hors corpus et n'introduisent aucune réponse citant une mauvaise source. Le RAG lit 10 passages, réglage retenu en v0.2.
+
+\section{La sûreté dans la CI}
+
+\subsection{Simuler un modèle hostile}
+
+Les tests du graphe écrits en v0.3 vérifiaient chaque contrôle séparément. Cette étape ajoute une suite de scénarios de sûreté, décrits dans un fichier de données lisible, où le faux modèle joue le pire cas : il obéit à l'attaquant. Il tente d'écrire sur un dossier cité dans un récit ou dans le nom d'une banque, de glisser deux écritures, d'appeler un outil « execute\_sql », d'ajouter un champ « sql » aux entrées, de faire reculer un dossier, d'inventer un numéro ou un nom de banque, de répondre sans résultat, de tourner en boucle. Chaque scénario vérifie la liste exacte des outils exécutés et le statut final.
+
+Ces scénarios ne mesurent pas la qualité de Gemini : ils montrent que le code tient même si le modèle est manipulé. C'est la garantie la plus forte qu'on puisse donner, puisqu'elle ne dépend pas de la bonne volonté du modèle.
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}Y c@{}}
+\toprule
+Menace & Scénarios \\
+\midrule
+Injection : écriture sur un dossier cité dans un récit ou un nom d'établissement & 2 \\
+Plus d'une écriture, dans un plan ou sur deux tours & 2 \\
+Outil hors liste, champ supplémentaire, statut qui fait reculer un dossier, raison vide & 4 \\
+Numéro inventé, numéro caché dans un autre, nom d'établissement deviné & 3 \\
+Réponse sans résultat, boucle de plans, réponse illisible & 3 \\
+Témoins : une écriture et une lecture légitimes doivent passer & 2 \\
+\bottomrule
+\end{tabularx}
+\caption{Les 16 scénarios de sûreté}
+\end{table}
+
+Les deux témoins comptent autant que les attaques : un agent qui refuserait tout passerait les quatorze autres.
+
+\subsection{Vérifier que les tests détectent une faille}
+
+Un test de sûreté qui passe ne prouve rien s'il passerait aussi avec un code défaillant. J'ai donc introduit deux défauts volontaires, en mémoire, le temps d'un lancement. En désactivant le contrôle de provenance, exactement les cinq scénarios qui en dépendent échouent : les deux injections, le numéro inventé, le numéro caché et le nom deviné. En autorisant deux écritures par demande, exactement les deux scénarios d'écriture multiple échouent. Les autres restent verts, ce qui montre que chaque scénario vise bien la garde qu'il prétend tester.
+
+\subsection{Une étape à part dans la CI}
+
+La CI lance ces scénarios dans une étape nommée « Scénarios de sûreté de l'agent », distincte des autres tests. Une régression de sûreté y apparaît au premier coup d'œil, et, comme toute étape de la CI, elle bloque la fusion d'une PR. Les scénarios tournent sans clé, sans réseau et sans base, en moins d'une seconde.
 
 \end{document}
