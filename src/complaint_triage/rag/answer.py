@@ -23,6 +23,9 @@ MAX_QUESTION_CHARS = 1000
 # Un extrait trop court (« the », « 60 days ») se retrouverait n'importe où sans rien prouver.
 MIN_QUOTE_CHARS = 20
 DEFAULT_PASSAGES = 5
+# Vérification retenue pour l'usage réel : l'évaluation de la v0.4 a adopté les assouplissements
+# (17 réponses correctes sur 20 contre 16, aucune mauvaise source, tous les refus hors corpus).
+ADOPTED_LENIENT_VERIFICATION = True
 
 SYSTEM_PROMPT = """You assist complaint handlers at a US retail bank.
 Answer the question using ONLY the regulation passages provided. Never use outside knowledge.

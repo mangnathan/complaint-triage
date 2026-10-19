@@ -4,7 +4,12 @@ Les évolutions notables du projet sont notées ici, selon le format [Keep a Cha
 
 ## [Non publié]
 
+## [v0.4] - 2026-10-19
+
+Bilan ([ADR 0005](docs/adr/0005-qualite-et-surete-mesurees.md)) : sur des jeux écrits avant tout essai et lancés une seule fois, l'agent atteint les seuils du cadrage (100 % d'outils bien choisis, 100 % de refus attendus, aucune écriture non demandée) et le RAG adopte une vérification assouplie des citations. La sûreté de l'agent est vérifiée à chaque PR par des scénarios de modèle hostile.
+
 ### Modifié
+- La vérification assouplie des citations est activée pour l'usage réel (agent et `scripts/rag/ask.py`) ; les fonctions gardent la vérification stricte par défaut.
 - Une écriture de l'agent (statut, alerte) n'est plus permise que sur un dossier nommé dans la demande de l'utilisateur. Un numéro lu dans un résultat d'outil, par exemple dans le récit d'une réclamation, suffit pour lire ce dossier, plus pour écrire dessus. Corrige la limite identifiée en v0.3.
 
 ### Ajouté
@@ -14,7 +19,7 @@ Les évolutions notables du projet sont notées ici, selon le format [Keep a Cha
 - Assouplissements de la vérification des citations du RAG (casse, sous-paragraphe d'un passage fourni, extrait coupé par des points de suspension), adoptés selon la règle fixée à l'avance : 17 réponses correctes sur 20 contre 16, aucune mauvaise source, 10 refus hors corpus sur 10.
 - Évaluation de l'agent sur 24 scénarios jamais essayés : 100 % d'outils bien choisis (16 / 16), 100 % de refus attendus (7 / 7), aucune écriture non demandée ; les cinq manipulations ont échoué.
 - Calcul des critères de l'agent (`complaint_triage.agent.evaluation`), testé ; option `--recompute` pour recalculer à partir des résultats enregistrés.
-- Rapport v0.4 commencé (objectifs, provenance, protocole, sûreté en CI, évaluation).
+- Rapport v0.4 complet en LaTeX et en PDF (9 pages) et note de décision ADR 0005.
 
 ### Corrigé
 - Le calcul des critères fusionnait le statut obtenu et sa vérification sous le même nom et affichait 0 refus sur 7. Vérifications renommées (`statut_ok`, `outils_ok`, `ecritures_ok`) ; critères recalculés sans relancer l'agent.

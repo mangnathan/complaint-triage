@@ -12,7 +12,7 @@ from pathlib import Path
 import pandas as pd
 
 from complaint_triage.rag.__main__ import PASSAGES_FILE
-from complaint_triage.rag.answer import ANSWERED, answer_question
+from complaint_triage.rag.answer import ADOPTED_LENIENT_VERIFICATION, ANSWERED, answer_question
 from complaint_triage.rag.embeddings import EMBEDDING_MODEL, FastEmbedder, cached_passage_vectors
 from complaint_triage.rag.llm import CachedModel, GeminiModel, QuotaGuard, load_dotenv
 from complaint_triage.rag.passages import passages_by_id
@@ -38,7 +38,9 @@ def main() -> None:
 
     guard = QuotaGuard(args.data_dir / "rag" / "quota.json")
     model = CachedModel(GeminiModel(guard), args.data_dir / "rag" / "llm-cache")
-    answer = answer_question(args.question, retriever, by_id, model, k=args.k)
+    answer = answer_question(
+        args.question, retriever, by_id, model, k=args.k, lenient=ADOPTED_LENIENT_VERIFICATION
+    )
 
     if answer.status == ANSWERED:
         print(answer.text, "\n")
