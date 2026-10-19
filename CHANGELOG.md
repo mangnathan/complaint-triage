@@ -4,6 +4,12 @@ Les évolutions notables du projet sont notées ici, selon le format [Keep a Cha
 
 ## [Non publié]
 
+### Modifié
+- Une écriture de l'agent (statut, alerte) n'est plus permise que sur un dossier nommé dans la demande de l'utilisateur. Un numéro lu dans un résultat d'outil, par exemple dans le récit d'une réclamation, suffit pour lire ce dossier, plus pour écrire dessus. Corrige la limite identifiée en v0.3.
+
+### Ajouté
+- Rapport v0.4 commencé (objectifs, provenance des écritures).
+
 ## [v0.3] - 2026-10-19
 
 Bilan ([ADR 0004](docs/adr/0004-agent-aux-outils-encadres.md)) : l'agent annonce son plan, utilise sept outils encadrés et répond ou refuse. Trois couches de sûreté : les droits de la base, des outils fermés aux entrées validées, et un contrôle de chaque plan par le code avant exécution. Dix démonstrations réussies sur dix, dont une manipulation cachée dans un récit. Limite connue, traitée en v0.4 : le contrôle vérifie qu'une valeur n'est pas inventée, pas qu'elle vient d'une source de confiance.
