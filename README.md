@@ -8,7 +8,22 @@ Un service réclamations traite en général ses dossiers dans l'ordre d'arrivé
 
 Le projet est pensé pour fonctionner en continu, pas comme une étude ponctuelle. Depuis le 14 août 2026, le CFPB ne publie plus le texte des réclamations. Le modèle de production doit donc se passer du texte, attendre que les issues soient connues avant d'apprendre, et être évalué en permanence sur les décisions réelles des banques.
 
-Statut actuel : v0.2 terminée. Le moteur de priorisation est choisi (v0.1), et un assistant répond aux questions de réglementation en citant ses sources, ou refuse (v0.2). La v0.3 (agent) est la prochaine étape.
+Statut actuel : v0.3 terminée. Le moteur de priorisation est choisi (v0.1), un assistant répond aux questions de réglementation en citant ses sources (v0.2), et un agent agit sur la file de réclamations avec des outils encadrés (v0.3). La v0.4 (qualité) est la prochaine étape.
+
+## Résultat de la v0.3 : un agent aux outils encadrés
+
+Le chargé de réclamations écrit une demande (« Montre-moi les 3 dossiers les plus prioritaires chez Capital One », « S'il est dans les 10 % prioritaires, passe le dossier en cours »). L'agent annonce son plan, utilise ses outils, puis répond ou refuse. Il ne décide jamais de l'issue d'un dossier ni d'une indemnisation, et ne peut ni supprimer ni faire reculer un dossier.
+
+Trois couches de sûreté, de la plus profonde à la plus proche du modèle :
+
+| Couche | Ce qu'elle garantit |
+|---|---|
+| **Base PostgreSQL** | Un compte en lecture seule, un compte qui ne peut modifier que le statut et écrire au journal ; vérifié par des tests qui tentent les opérations interdites |
+| **Outils fermés** | Sept outils aux entrées validées par pydantic ; le modèle ne peut jamais écrire de SQL |
+| **Contrôle du plan** | Avant toute exécution : une écriture au plus par demande, aucun numéro de dossier ni nom de banque inventé |
+
+- **Dix démonstrations sur dix réussies**, sur une banque fictive remise à zéro : lectures, réglementation, écritures demandées, quatre refus, et une tentative de manipulation cachée dans le récit d'une réclamation, ignorée par l'agent.
+- **Limite connue** : le contrôle vérifie qu'une valeur n'est pas inventée, pas qu'elle vient d'une source de confiance. Elle sera traitée et mesurée en v0.4. Détails dans le [rapport v0.3](docs/pdf/complaint-triage_v0.3_Rapport-agent.pdf).
 
 ## Résultat de la v0.2 : réponses avec citations, ou refus
 
@@ -81,7 +96,7 @@ Avant toute mise en service, deux contrôles fixés au cadrage doivent être pas
 | v0.0 Cadrage | Contexte, besoins, étude de faisabilité, seuils de décision | terminé |
 | v0.1 Données et scoring | Collecte automatisée, contrôles, exploration, règle de référence, XGBoost, modèle de langage, analyse par sous-groupe | terminé |
 | v0.2 RAG | Réponses avec citations, ou refus | terminé |
-| v0.3 Agent | Planification, outils SQL paramétrés et webhook, refus argumentés | à venir |
+| v0.3 Agent | Planification, outils SQL paramétrés et webhook, refus argumentés | terminé |
 | v0.4 Qualité | Tests par outil, 20 à 25 scénarios d'évaluation en CI | à venir |
 | v0.5 Industrialisation | Docker, CI/CD avec GitHub Actions | à venir |
 | v1.0 Production | Cloud Run, collecte quotidienne, mode shadow, tableau de bord | à venir |
@@ -95,6 +110,7 @@ Chaque version est livrée avec un rapport en PDF (source LaTeX dans le dépôt)
 | v0.0 | [Rapport de cadrage](docs/pdf/complaint-triage_v0.0_Rapport-de-cadrage.pdf) ([source](docs/v0.0-cadrage/v0.0-rapport-de-cadrage.tex)) | [ADR 0001](docs/adr/0001-cadrage.md) |
 | v0.1 | [Rapport données et scoring](docs/pdf/complaint-triage_v0.1_Rapport-donnees-et-scoring.pdf) ([source](docs/v0.1-donnees-et-scoring/v0.1-rapport-donnees-et-scoring.tex)) | [ADR 0002](docs/adr/0002-moteur-de-priorisation.md) |
 | v0.2 | [Rapport RAG](docs/pdf/complaint-triage_v0.2_Rapport-RAG.pdf) ([source](docs/v0.2-rag/v0.2-rapport-rag.tex)) | [ADR 0003](docs/adr/0003-rag-avec-citations-verifiees.md) |
+| v0.3 | [Rapport agent](docs/pdf/complaint-triage_v0.3_Rapport-agent.pdf) ([source](docs/v0.3-agent/v0.3-rapport-agent.tex)) | [ADR 0004](docs/adr/0004-agent-aux-outils-encadres.md) |
 
 ## Organisation du dépôt
 
@@ -104,15 +120,17 @@ docs/
   vX.Y-<étape>/   source LaTeX, figures et données agrégées de chaque rapport
   adr/            notes de décision technique
   latex/          mise en page commune des rapports
-evaluation/       jeux de questions écrits à la main pour évaluer le RAG
+evaluation/       jeux de questions et scénarios écrits à la main (RAG, agent)
 notebooks/        lanceur Colab pour l'entraînement sur GPU (sans logique propre)
 scripts/          scripts exécutables (faisabilité, exploration, évaluation, expériences, rapports)
 src/complaint_triage/
   data/           collecte, contrôle, assemblage et préparation des données du CFPB
   evaluation/     découpage dans le temps, files, Capture@10 %, équité, calibration, intervalles
   models/         règles de référence, XGBoost, référence textuelle TF-IDF, modèle de langage
-  rag/            corpus réglementaire de l'eCFR, recherche des passages, mesure de la recherche
-tests/            tests automatiques (pytest)
+  rag/            corpus réglementaire de l'eCFR, recherche, réponses avec citations vérifiées
+  db/             schéma PostgreSQL, comptes au moindre privilège, chargement de la file
+  agent/          outils encadrés, graphe de l'agent, démonstrations
+tests/            tests unitaires (sans réseau) et tests d'intégration (base PostgreSQL locale)
 ```
 
 ## Reproduire
@@ -161,6 +179,16 @@ uv run python scripts/rag/evaluate_retrieval.py             # mesure de la reche
 uv run python scripts/rag/ask.py "How long does a bank have to investigate a disputed debit card transaction?"
 uv run python scripts/rag/evaluate_answers.py --part developpement -k 10   # estimation des appels
 uv run python scripts/rag/evaluate_answers.py --part developpement -k 10 --execute
+```
+
+L'agent (v0.3) demande en plus PostgreSQL (version 18 testée) installé sur le poste. Le script de mise en place demande le mot de passe du super-utilisateur en saisie masquée, crée les comptes du projet avec des mots de passe aléatoires et les écrit dans `.env`.
+
+```bash
+uv run python scripts/db/setup_database.py              # comptes, base, schéma et droits (à lancer soi-même)
+uv run python -m complaint_triage.db                    # file des réclamations depuis janvier 2026
+uv run python scripts/agent/alert_receiver.py           # récepteur local d'alertes (dans un autre terminal)
+uv run python scripts/agent/run_agent.py "Show me the 3 highest-priority new credit card complaints at Capital One."
+uv run python scripts/agent/run_demonstrations.py       # dix démonstrations sur une banque fictive
 ```
 
 La décision sur la période de test (`scripts/evaluation/decide_on_test.py` sans option) a été prise une seule fois ; le script refuse de la rejouer tant que ses résultats sont présents dans `docs/v0.1-donnees-et-scoring/data/`.
