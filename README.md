@@ -8,7 +8,17 @@ Un service réclamations traite en général ses dossiers dans l'ordre d'arrivé
 
 Le projet est pensé pour fonctionner en continu, pas comme une étude ponctuelle. Depuis le 14 août 2026, le CFPB ne publie plus le texte des réclamations. Le modèle de production doit donc se passer du texte, attendre que les issues soient connues avant d'apprendre, et être évalué en permanence sur les décisions réelles des banques.
 
-Statut actuel : v0.4 terminée. Le moteur de priorisation est choisi (v0.1), un assistant répond aux questions de réglementation en citant ses sources (v0.2), un agent agit sur la file avec des outils encadrés (v0.3), et l'ensemble est mesuré sur des scénarios jamais essayés, avec une sûreté vérifiée à chaque PR (v0.4). La v0.5 (industrialisation) est la prochaine étape.
+Statut actuel : v0.4 terminée. Le moteur de priorisation est choisi (v0.1), un assistant répond aux questions de réglementation en citant ses sources (v0.2), un agent agit sur la file avec des outils encadrés (v0.3), et l'ensemble est mesuré sur des scénarios jamais essayés, avec une sûreté vérifiée à chaque PR (v0.4). La base et l'image Docker de l'application sont testées dans la CI à chaque PR (v0.5). La v1.0, une démo publique gratuite, est la prochaine étape.
+
+## Intégration continue
+
+Chaque PR passe par trois tâches en parallèle, qui bloquent la fusion en cas d'échec :
+
+| Tâche | Contenu | Durée |
+|---|---|---|
+| Lint, types et tests | ruff, mypy strict, 205 tests unitaires, 17 scénarios de sûreté (modèle hostile) | environ 1 min |
+| Base PostgreSQL et tests d'intégration | PostgreSQL 18.6 jetable, mis en place par le script du projet, 18 tests sur les droits et les outils | moins d'1 min |
+| Image Docker | Construction, démarrage, exécution sans root, aucun secret ni donnée dans l'image | environ 1 min |
 
 ## Résultat de la v0.4 : qualité et sûreté mesurées
 
@@ -114,8 +124,8 @@ Avant toute mise en service, deux contrôles fixés au cadrage doivent être pas
 | v0.2 RAG | Réponses avec citations, ou refus | terminé |
 | v0.3 Agent | Planification, outils SQL paramétrés et webhook, refus argumentés | terminé |
 | v0.4 Qualité | Tests par outil, 20 à 25 scénarios d'évaluation en CI | terminé |
-| v0.5 Industrialisation | Docker, CI/CD avec GitHub Actions | à venir |
-| v1.0 Production | Cloud Run, collecte quotidienne, mode shadow, tableau de bord | à venir |
+| v0.5 Industrialisation | Base PostgreSQL et image Docker testées dans la CI, version légère | terminé |
+| v1.0 Démo publique | Interface web gratuite sur données fictives, réponses en cache, plafond d'appels | à venir |
 
 ## Documentation
 
@@ -128,6 +138,7 @@ Chaque version est livrée avec un rapport en PDF (source LaTeX dans le dépôt)
 | v0.2 | [Rapport RAG](docs/pdf/complaint-triage_v0.2_Rapport-RAG.pdf) ([source](docs/v0.2-rag/v0.2-rapport-rag.tex)) | [ADR 0003](docs/adr/0003-rag-avec-citations-verifiees.md) |
 | v0.3 | [Rapport agent](docs/pdf/complaint-triage_v0.3_Rapport-agent.pdf) ([source](docs/v0.3-agent/v0.3-rapport-agent.tex)) | [ADR 0004](docs/adr/0004-agent-aux-outils-encadres.md) |
 | v0.4 | [Rapport qualité](docs/pdf/complaint-triage_v0.4_Rapport-qualite.pdf) ([source](docs/v0.4-qualite/v0.4-rapport-qualite.tex)) | [ADR 0005](docs/adr/0005-qualite-et-surete-mesurees.md) |
+| v0.5 | [Rapport industrialisation](docs/pdf/complaint-triage_v0.5_Rapport-industrialisation.pdf) ([source](docs/v0.5-industrialisation/v0.5-rapport-industrialisation.tex)) | [ADR 0006](docs/adr/0006-industrialisation-legere.md) |
 
 ## Organisation du dépôt
 
@@ -147,7 +158,8 @@ src/complaint_triage/
   rag/            corpus réglementaire de l'eCFR, recherche, réponses avec citations vérifiées
   db/             schéma PostgreSQL, comptes au moindre privilège, chargement de la file
   agent/          outils encadrés, graphe de l'agent, démonstrations
-tests/            tests unitaires (sans réseau) et tests d'intégration (base PostgreSQL locale)
+tests/            tests unitaires (sans réseau), d'intégration (PostgreSQL) et de sûreté (modèle hostile)
+Dockerfile        image de l'application, construite et vérifiée par la CI
 ```
 
 ## Reproduire

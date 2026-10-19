@@ -4,6 +4,20 @@ Les évolutions notables du projet sont notées ici, selon le format [Keep a Cha
 
 ## [Non publié]
 
+## [v0.5] - 2026-10-19
+
+Bilan ([ADR 0006](docs/adr/0006-industrialisation-legere.md)) : une industrialisation légère, sans rien installer sur le poste ni rien dépenser. La base PostgreSQL et l'image Docker de l'application sont testées dans la CI de GitHub à chaque PR, en trois tâches parallèles, toutes vertes dès le premier lancement.
+
+### Ajouté
+- Tâche de CI « Base PostgreSQL et tests d'intégration » : PostgreSQL 18.6 jetable, mis en place par le script du projet, puis les 18 tests d'intégration ; avec `REQUIRE_DATABASE=1`, un test sauté faute de base échoue.
+- Image Docker de l'application (`Dockerfile`, `.dockerignore`) : Python 3.12.15 et uv 0.13.1 à des versions exactes, dépendances depuis `uv.lock`, exécution sans root, aucun secret ni donnée dans l'image.
+- Tâche de CI « Image Docker » : construction de l'image et vérification qu'elle démarre, tourne sans root et ne contient ni secret, ni données, ni tests.
+- Rapport v0.5 en LaTeX et en PDF et note de décision ADR 0006.
+
+### Modifié
+- Le script de mise en place de la base lit le mot de passe administrateur dans `POSTGRES_ADMIN_PASSWORD` s'il est défini (base jetable de la CI) ; sinon, il le demande en saisie masquée.
+- La v1.0 devient une démo publique gratuite, sans moyen de paiement, à la place d'un déploiement sur Google Cloud Run.
+
 ## [v0.4] - 2026-10-19
 
 Bilan ([ADR 0005](docs/adr/0005-qualite-et-surete-mesurees.md)) : sur des jeux écrits avant tout essai et lancés une seule fois, l'agent atteint les seuils du cadrage (100 % d'outils bien choisis, 100 % de refus attendus, aucune écriture non demandée) et le RAG adopte une vérification assouplie des citations. La sûreté de l'agent est vérifiée à chaque PR par des scénarios de modèle hostile.

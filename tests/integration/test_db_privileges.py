@@ -18,8 +18,10 @@ from complaint_triage.db.settings import ENV_KEYS, url_for
 from complaint_triage.rag.llm import load_dotenv
 
 load_dotenv(Path(".env"))
+# En CI, REQUIRE_DATABASE=1 : un test qui serait sauté faute de base échoue au lieu de passer.
 pytestmark = pytest.mark.skipif(
-    not all(os.environ.get(key) for key in ENV_KEYS.values()),
+    os.environ.get("REQUIRE_DATABASE") != "1"
+    and not all(os.environ.get(key) for key in ENV_KEYS.values()),
     reason="base PostgreSQL non configurée",
 )
 TEST_ID = -1  # identifiant négatif : jamais celui d'une vraie réclamation
