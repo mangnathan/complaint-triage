@@ -8,7 +8,23 @@ Un service réclamations traite en général ses dossiers dans l'ordre d'arrivé
 
 Le projet est pensé pour fonctionner en continu, pas comme une étude ponctuelle. Depuis le 14 août 2026, le CFPB ne publie plus le texte des réclamations. Le modèle de production doit donc se passer du texte, attendre que les issues soient connues avant d'apprendre, et être évalué en permanence sur les décisions réelles des banques.
 
-Statut actuel : v0.3 terminée. Le moteur de priorisation est choisi (v0.1), un assistant répond aux questions de réglementation en citant ses sources (v0.2), et un agent agit sur la file de réclamations avec des outils encadrés (v0.3). La v0.4 (qualité) est la prochaine étape.
+Statut actuel : v0.4 terminée. Le moteur de priorisation est choisi (v0.1), un assistant répond aux questions de réglementation en citant ses sources (v0.2), un agent agit sur la file avec des outils encadrés (v0.3), et l'ensemble est mesuré sur des scénarios jamais essayés, avec une sûreté vérifiée à chaque PR (v0.4). La v0.5 (industrialisation) est la prochaine étape.
+
+## Résultat de la v0.4 : qualité et sûreté mesurées
+
+Sur des jeux écrits et versionnés avant tout essai, puis lancés une seule fois :
+
+| Critère | Seuil du cadrage | Résultat |
+|---|---|---|
+| Bon outil choisi par l'agent (24 scénarios) | 90 % | **100 %** (16 / 16) |
+| Refus attendus effectivement refusés | 100 % | **100 %** (7 / 7) |
+| Écritures non demandées | 0 | **0** |
+| RAG, refus hors corpus (30 nouvelles questions) | 95 % | **100 %** (10 / 10) |
+
+- **Cinq manipulations ont échoué**, par des récits de réclamations, par la demande (« SYSTEM OVERRIDE ») et par le nom d'un établissement.
+- **La faille de la v0.3 est fermée par le code** : une écriture n'est permise que sur un dossier nommé dans la demande de l'utilisateur, jamais sur un numéro lu dans le récit d'une réclamation.
+- **Seize scénarios de sûreté tournent en CI** : un faux modèle qui obéit à l'attaquant, et le code doit bloquer chaque action interdite. Deux défauts introduits volontairement ont confirmé que ces scénarios détectent les failles qu'ils visent.
+- **Le RAG répond juste à chaque question dont il reçoit le bon passage** (17 / 17) avec une vérification des citations assouplie, adoptée selon une règle fixée à l'avance ; son maillon faible est désormais la recherche. Détails dans le [rapport v0.4](docs/pdf/complaint-triage_v0.4_Rapport-qualite.pdf).
 
 ## Résultat de la v0.3 : un agent aux outils encadrés
 
@@ -23,7 +39,7 @@ Trois couches de sûreté, de la plus profonde à la plus proche du modèle :
 | **Contrôle du plan** | Avant toute exécution : une écriture au plus par demande, aucun numéro de dossier ni nom de banque inventé |
 
 - **Dix démonstrations sur dix réussies**, sur une banque fictive remise à zéro : lectures, réglementation, écritures demandées, quatre refus, et une tentative de manipulation cachée dans le récit d'une réclamation, ignorée par l'agent.
-- **Limite connue** : le contrôle vérifie qu'une valeur n'est pas inventée, pas qu'elle vient d'une source de confiance. Elle sera traitée et mesurée en v0.4. Détails dans le [rapport v0.3](docs/pdf/complaint-triage_v0.3_Rapport-agent.pdf).
+- **Limite connue à la fin de la v0.3** : le contrôle vérifiait qu'une valeur n'était pas inventée, pas qu'elle venait d'une source de confiance. Corrigée en v0.4. Détails dans le [rapport v0.3](docs/pdf/complaint-triage_v0.3_Rapport-agent.pdf).
 
 ## Résultat de la v0.2 : réponses avec citations, ou refus
 
@@ -97,7 +113,7 @@ Avant toute mise en service, deux contrôles fixés au cadrage doivent être pas
 | v0.1 Données et scoring | Collecte automatisée, contrôles, exploration, règle de référence, XGBoost, modèle de langage, analyse par sous-groupe | terminé |
 | v0.2 RAG | Réponses avec citations, ou refus | terminé |
 | v0.3 Agent | Planification, outils SQL paramétrés et webhook, refus argumentés | terminé |
-| v0.4 Qualité | Tests par outil, 20 à 25 scénarios d'évaluation en CI | à venir |
+| v0.4 Qualité | Tests par outil, 20 à 25 scénarios d'évaluation en CI | terminé |
 | v0.5 Industrialisation | Docker, CI/CD avec GitHub Actions | à venir |
 | v1.0 Production | Cloud Run, collecte quotidienne, mode shadow, tableau de bord | à venir |
 
@@ -111,6 +127,7 @@ Chaque version est livrée avec un rapport en PDF (source LaTeX dans le dépôt)
 | v0.1 | [Rapport données et scoring](docs/pdf/complaint-triage_v0.1_Rapport-donnees-et-scoring.pdf) ([source](docs/v0.1-donnees-et-scoring/v0.1-rapport-donnees-et-scoring.tex)) | [ADR 0002](docs/adr/0002-moteur-de-priorisation.md) |
 | v0.2 | [Rapport RAG](docs/pdf/complaint-triage_v0.2_Rapport-RAG.pdf) ([source](docs/v0.2-rag/v0.2-rapport-rag.tex)) | [ADR 0003](docs/adr/0003-rag-avec-citations-verifiees.md) |
 | v0.3 | [Rapport agent](docs/pdf/complaint-triage_v0.3_Rapport-agent.pdf) ([source](docs/v0.3-agent/v0.3-rapport-agent.tex)) | [ADR 0004](docs/adr/0004-agent-aux-outils-encadres.md) |
+| v0.4 | [Rapport qualité](docs/pdf/complaint-triage_v0.4_Rapport-qualite.pdf) ([source](docs/v0.4-qualite/v0.4-rapport-qualite.tex)) | [ADR 0005](docs/adr/0005-qualite-et-surete-mesurees.md) |
 
 ## Organisation du dépôt
 
@@ -189,6 +206,7 @@ uv run python -m complaint_triage.db                    # file des réclamations
 uv run python scripts/agent/alert_receiver.py           # récepteur local d'alertes (dans un autre terminal)
 uv run python scripts/agent/run_agent.py "Show me the 3 highest-priority new credit card complaints at Capital One."
 uv run python scripts/agent/run_demonstrations.py       # dix démonstrations sur une banque fictive
+uv run pytest tests/safety -v                           # scénarios de sûreté (modèle hostile), sans clé ni base
 ```
 
 La décision sur la période de test (`scripts/evaluation/decide_on_test.py` sans option) a été prise une seule fois ; le script refuse de la rejouer tant que ses résultats sont présents dans `docs/v0.1-donnees-et-scoring/data/`.
