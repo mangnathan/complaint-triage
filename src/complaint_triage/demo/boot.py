@@ -62,7 +62,11 @@ def start_postgres(data_dir: Path) -> str:
         )
     finally:
         password_file.unlink(missing_ok=True)  # le mot de passe ne reste que dans la mémoire
-    options = f"-c listen_addresses={HOST} -c port={PORT} -c unix_socket_directories=/tmp"
+    # Mémoire réduite : la démo tient dans les 512 Mo de l'offre gratuite de l'hébergeur.
+    options = (
+        f"-c listen_addresses={HOST} -c port={PORT} -c unix_socket_directories=/tmp"
+        " -c shared_buffers=32MB -c max_connections=20"
+    )
     subprocess.run(  # noqa: S603
         [
             postgres_binary("pg_ctl"),

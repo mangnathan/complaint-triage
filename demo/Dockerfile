@@ -1,6 +1,6 @@
-# Image de la démo publique (Hugging Face Spaces) : l'application, l'interface Streamlit et un
-# PostgreSQL propre à l'image, démarré et mis en place au lancement par le code du projet.
-# Construite et vérifiée par la CI ; publiée par scripts/demo/deploy_space.py.
+# Image de la démo publique (Render, offre gratuite) : l'application, l'interface Streamlit et
+# un PostgreSQL propre à l'image, démarré et mis en place au lancement par le code du projet.
+# Construite et vérifiée par la CI ; publiée par scripts/demo/deploy_demo.py.
 
 FROM python:3.12.15-slim-trixie
 
@@ -24,7 +24,7 @@ RUN uv sync --locked --no-default-groups --group demo --no-install-project
 COPY src ./src
 RUN uv sync --locked --no-default-groups --group demo
 
-# Hugging Face exécute les images avec l'utilisateur 1000, jamais root.
+# L'application ne tourne jamais en root.
 RUN useradd --create-home --uid 1000 user && mkdir -p /app/data && chown -R user:user /app
 USER user
 ENV PATH="/app/.venv/bin:$PATH" \
