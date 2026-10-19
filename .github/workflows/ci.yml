@@ -121,19 +121,23 @@ jobs:
       - name: Construire l'image de démonstration
         run: docker build --file demo/Dockerfile --tag complaint-triage-demo:ci .
 
+      # Comme l'offre gratuite de Render : 512 Mo de mémoire et le port fourni par PORT.
       - name: Lancer la démo comme l'hébergeur
-        run: docker run --detach --name demo --publish 7860:7860 complaint-triage-demo:ci
+        run: >-
+          docker run --detach --name demo --memory 512m --env PORT=10000
+          --publish 10000:10000 complaint-triage-demo:ci
 
       - name: L'interface répond et la base est prête
         run: |
           for attempt in $(seq 1 60); do
-            if curl --silent --fail http://localhost:7860/_stcore/health | grep -q ok; then
+            if curl --silent --fail http://localhost:10000/_stcore/health | grep -q ok; then
               break
             fi
             sleep 2
           done
           docker logs demo 2>&1 | grep "Base de démonstration prête"
-          curl --silent --fail http://localhost:7860/_stcore/health | grep -q ok
+          curl --silent --fail http://localhost:10000/_stcore/health | grep -q ok
+          docker stats --no-stream demo
 
       - name: La démo tourne sans root
         run: test "$(docker exec demo id -u)" != "0"
