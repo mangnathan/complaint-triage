@@ -22,8 +22,10 @@ from complaint_triage.rag.answer import REFUSED, Answer
 from complaint_triage.rag.llm import load_dotenv
 
 load_dotenv(Path(".env"))
+# En CI, REQUIRE_DATABASE=1 : un test qui serait sauté faute de base échoue au lieu de passer.
 pytestmark = pytest.mark.skipif(
-    not all(os.environ.get(key) for key in ENV_KEYS.values()),
+    os.environ.get("REQUIRE_DATABASE") != "1"
+    and not all(os.environ.get(key) for key in ENV_KEYS.values()),
     reason="base PostgreSQL non configurée",
 )
 BANK = "Banque fictive des tests"

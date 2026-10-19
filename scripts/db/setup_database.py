@@ -52,7 +52,11 @@ def connect_as_admin(dbname: str) -> psycopg.Connection[tuple[object, ...]]:
 
 def main() -> None:
     ensure_ignored(ENV_FILE)
-    admin_password = getpass.getpass("Mot de passe du super-utilisateur postgres : ")
+    # En CI, la base est jetable et le mot de passe vient de l'environnement ; sur un poste, il
+    # est demandé en saisie masquée et n'est enregistré nulle part.
+    admin_password = os.environ.get("POSTGRES_ADMIN_PASSWORD") or getpass.getpass(
+        "Mot de passe du super-utilisateur postgres : "
+    )
     passwords = {role: secrets.token_urlsafe(24) for role in ROLES}
     # Variable propre à ce processus, effacée dès la fin de la mise en place.
     os.environ["PGPASSWORD"] = admin_password
