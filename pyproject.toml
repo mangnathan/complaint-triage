@@ -22,7 +22,15 @@ dependencies = [
     "langgraph>=0.6",
 ]
 
+[tool.uv]
+# Le groupe demo (interface Streamlit) est installé sur le poste et en CI, pour que mypy vérifie
+# aussi l'interface ; l'image principale l'exclut explicitement.
+default-groups = ["dev", "demo"]
+
 [dependency-groups]
+demo = [
+    "streamlit>=1.40",
+]
 dev = [
     "ruff>=0.13",
     "mypy>=1.18",
