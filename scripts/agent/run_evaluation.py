@@ -19,10 +19,12 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 
 from complaint_triage.agent.demo import check_scenario, reset_fixtures
+from complaint_triage.agent.evaluation import criteria
 from complaint_triage.agent.evaluation_data import evaluation_rows
 from complaint_triage.agent.graph import MAX_ROUNDS
 from complaint_triage.agent.receiver import start_receiver
@@ -32,15 +34,22 @@ from complaint_triage.db.settings import url_for
 from complaint_triage.rag.llm import QuotaGuard, load_dotenv
 
 SCENARIOS = Path("evaluation/agent/scenarios-evaluation.json")
-TOOL_TARGET, REFUSAL_TARGET = 0.90, 1.0
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-dir", type=Path, default=Path("data"))
     parser.add_argument("--out", type=Path, default=Path("docs/v0.4-qualite/data"))
+    parser.add_argument(
+        "--recompute",
+        action="store_true",
+        help="recalculer les critères à partir des résultats enregistrés, sans relancer l'agent",
+    )
     args = parser.parse_args()
 
+    if args.recompute:
+        recompute(args.out)
+        return
     criteria_file = args.out / "agent-evaluation-criteres.json"
     if criteria_file.exists():
         raise SystemExit(
@@ -65,60 +74,90 @@ def main() -> None:
         args.data_dir, guard, alert_url, actor="agent (évaluation)", lenient_citations=lenient
     )
 
-    transcripts, rows = [], []
+    transcripts = []
     try:
         for scenario in scenarios:
             run = agent.run(scenario["demande"])
             verdict = check_scenario(run, scenario)
-            record = {"statut": run.status, "texte": run.text, "appels": run.llm_calls, **verdict}
-            transcripts.append({**scenario, **record, "tours": run.rounds})
-            rows.append({"id": scenario["id"], "type": scenario["type"], **record})
+            transcripts.append(
+                {
+                    **scenario,
+                    **verdict,
+                    "texte": run.text,
+                    "appels": run.llm_calls,
+                    "tours": run.rounds,
+                }
+            )
             mark = "réussi" if verdict["reussi"] else "ÉCHEC"
             print(f"{scenario['id']} [{mark}] {run.status} : {run.text[:140]}")
     finally:
         receiver.shutdown()
 
-    results = pd.DataFrame(rows)
-    expects_tools = [bool(s["outils_attendus"]) for s in scenarios]
-    refusal_only = [s["statut_attendu"] == "refuse" for s in scenarios]
-    tools_ok = results.loc[expects_tools, "outils"] & results.loc[expects_tools, "ecritures"]
-    refused_ok = (
-        results.loc[refusal_only, "statut"].eq("refuse") & results.loc[refusal_only, "ecritures"]
-    )
-    unrequested = int((~results["ecritures"]).sum())
-    criteria = {
-        "verification_des_citations": "assouplie" if lenient else "stricte",
-        "bon_outil": {
-            "reussis": int(tools_ok.sum()),
-            "total": len(tools_ok),
-            "taux": float(tools_ok.mean()),
-            "seuil": TOOL_TARGET,
-            "atteint": bool(tools_ok.mean() >= TOOL_TARGET),
-        },
-        "refus_attendus": {
-            "reussis": int(refused_ok.sum()),
-            "total": len(refused_ok),
-            "taux": float(refused_ok.mean()),
-            "seuil": REFUSAL_TARGET,
-            "atteint": bool(refused_ok.mean() >= REFUSAL_TARGET),
-        },
-        "scenarios_avec_ecriture_non_permise": unrequested,
-        "scenarios_reussis": int(results["reussi"].sum()),
-        "scenarios": len(results),
-        "appels_de_decision": int(results["appels"].sum()),
-    }
-
     args.out.mkdir(parents=True, exist_ok=True)
     (args.out / "agent-evaluation.json").write_text(
         json.dumps(transcripts, ensure_ascii=False, indent=2, default=str) + "\n", encoding="utf-8"
     )
-    results["outils_utilises"] = results["outils_utilises"].map(" ".join)
-    results.drop(columns=["texte"]).to_csv(args.out / "agent-evaluation.csv", index=False)
-    criteria_file.write_text(
-        json.dumps(criteria, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-    )
-    print(json.dumps(criteria, ensure_ascii=False, indent=2))
+    write_criteria(scenarios, transcripts, lenient, args.out)
     print(f"Appels Gemini aujourd'hui : {guard.used_today()} / {guard.daily_cap}")
+
+
+def verdict_of(transcript: dict[str, Any]) -> dict[str, Any]:
+    """Verdict d'un scénario enregistré. Le premier lancement a été enregistré avec les anciens
+    noms (« statut », « outils », « ecritures » : des booléens de vérification, dont « statut »
+    avait écrasé le statut obtenu) ; ils sont relus ici sans rien deviner."""
+    if "statut_ok" in transcript:
+        return transcript
+    expected = transcript["statut_attendu"]
+    observed = expected if transcript["statut"] and isinstance(expected, str) else None
+    return {
+        **transcript,
+        "statut_obtenu": observed if observed else "non enregistré",
+        "statut_ok": transcript["statut"],
+        "outils_ok": transcript["outils"],
+        "ecritures_ok": transcript["ecritures"],
+    }
+
+
+def write_criteria(
+    scenarios: list[dict[str, Any]], transcripts: list[dict[str, Any]], lenient: bool, out: Path
+) -> None:
+    verdicts = [verdict_of(t) for t in transcripts]
+    result = {
+        "verification_des_citations": "assouplie" if lenient else "stricte",
+        **criteria(scenarios, verdicts),
+        "appels_de_decision": sum(int(t["appels"]) for t in transcripts),
+    }
+    columns = [
+        "id",
+        "type",
+        "statut_attendu",
+        "statut_obtenu",
+        "outils_utilises",
+        "nb_ecritures",
+        "statut_ok",
+        "outils_ok",
+        "ecritures_ok",
+        "reussi",
+        "appels",
+    ]
+    table = pd.DataFrame(verdicts)[columns]
+    table["statut_attendu"] = table["statut_attendu"].map(
+        lambda s: " ou ".join(s) if isinstance(s, list) else s
+    )
+    table["outils_utilises"] = table["outils_utilises"].map(" ".join)
+    table.to_csv(out / "agent-evaluation.csv", index=False)
+    (out / "agent-evaluation-criteres.json").write_text(
+        json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+
+
+def recompute(out: Path) -> None:
+    """Recalcule les critères à partir des résultats enregistrés, sans relancer l'agent."""
+    scenarios = json.loads(SCENARIOS.read_text(encoding="utf-8"))
+    transcripts = json.loads((out / "agent-evaluation.json").read_text(encoding="utf-8"))
+    decision = json.loads((out / "rag-verification-decision.json").read_text(encoding="utf-8"))
+    write_criteria(scenarios, transcripts, bool(decision["assouplissements_adoptes"]), out)
 
 
 if __name__ == "__main__":
