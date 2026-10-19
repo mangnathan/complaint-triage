@@ -21,7 +21,9 @@ from complaint_triage.rag.retrieval import DenseIndex
 RAG_PASSAGES = 10  # réglage retenu en v0.2
 
 
-def regulation_answerer(data_dir: Path, model: LanguageModel) -> Callable[[str], Answer]:
+def regulation_answerer(
+    data_dir: Path, model: LanguageModel, *, lenient: bool = False
+) -> Callable[[str], Answer]:
     """Le RAG n'est chargé qu'au premier appel : la plupart des demandes n'en ont pas besoin."""
     state: dict[str, Any] = {}
 
@@ -36,17 +38,24 @@ def regulation_answerer(data_dir: Path, model: LanguageModel) -> Callable[[str],
             state["retriever"] = DenseIndex(passages["passage_id"].tolist(), vectors, embedder)
             state["passages"] = passages_by_id(passages)
         return answer_question(
-            question, state["retriever"], state["passages"], model, k=RAG_PASSAGES
+            question, state["retriever"], state["passages"], model, k=RAG_PASSAGES, lenient=lenient
         )
 
     return ask
 
 
-def build_agent(data_dir: Path, guard: QuotaGuard, alert_url: str, actor: str = "agent") -> Agent:
+def build_agent(
+    data_dir: Path,
+    guard: QuotaGuard,
+    alert_url: str,
+    actor: str = "agent",
+    *,
+    lenient_citations: bool = False,
+) -> Agent:
     model = CachedModel(GeminiModel(guard), data_dir / "rag" / "llm-cache")
     context = ToolContext(
         database=AgentDatabase.from_environment(),
-        ask_regulations=regulation_answerer(data_dir, model),
+        ask_regulations=regulation_answerer(data_dir, model, lenient=lenient_citations),
         alert_url=alert_url,
         actor=actor,
     )

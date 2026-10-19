@@ -103,8 +103,60 @@ def build_prompt(question: str, passages: Sequence[Mapping[str, str]]) -> str:
     return "Passages:\n\n" + "\n\n".join(blocks) + f"\n\nQuestion: {question}"
 
 
-def verify(response: Mapping[str, Any], passages: Mapping[str, Mapping[str, str]]) -> Answer:
-    """Contrôle la réponse du modèle ; toute citation invérifiable entraîne un refus."""
+_ELLIPSIS = re.compile(r"\s*(?:\.\.\.|…)\s*")
+_WINDOW_SUFFIX = re.compile(r"-\d+$")
+# Avec l'assouplissement, chaque morceau d'un extrait coupé doit rester assez long pour prouver.
+MIN_FRAGMENT_CHARS = 10
+
+
+def _quote_found(quote: str, text: str, *, lenient: bool) -> bool:
+    """L'extrait est-il dans le texte ? Strict : mot pour mot. Assoupli : sans tenir compte de
+    la casse, et un extrait coupé par des points de suspension est accepté si chaque morceau est
+    dans le texte, dans le même ordre."""
+    found_quote, found_text = _normalize(quote), _normalize(text)
+    if not lenient:
+        return found_quote in found_text
+    found_quote, found_text = found_quote.lower(), found_text.lower()
+    fragments = [f for f in _ELLIPSIS.split(found_quote) if f]
+    if len(fragments) > 1 and any(len(f) < MIN_FRAGMENT_CHARS for f in fragments):
+        return False
+    position = 0
+    for fragment in fragments:
+        index = found_text.find(fragment, position)
+        if index < 0:
+            return False
+        position = index + len(fragment)
+    return bool(fragments)
+
+
+def _candidates(
+    passage_id: str, passages: Mapping[str, Mapping[str, str]], *, lenient: bool
+) -> list[str]:
+    """Passages fournis qui peuvent porter la citation. Assoupli : « 1005.11(d)(1) » désigne un
+    sous-paragraphe du passage fourni « 1005.11(d) » (ou de ses morceaux « 1005.11(d)-2 »)."""
+    if passage_id in passages:
+        return [passage_id]
+    if not lenient:
+        return []
+    return [
+        pid
+        for pid in passages
+        if "(" in pid and passage_id.startswith(_WINDOW_SUFFIX.sub("", pid) + "(")
+    ]
+
+
+def verify(
+    response: Mapping[str, Any],
+    passages: Mapping[str, Mapping[str, str]],
+    *,
+    lenient: bool = False,
+) -> Answer:
+    """Contrôle la réponse du modèle ; toute citation invérifiable entraîne un refus.
+
+    `lenient` active les trois assouplissements mesurés en v0.4 (casse, sous-paragraphe d'un
+    passage fourni, extrait coupé par des points de suspension). Chacun reste une vérification
+    exacte : le texte cité doit toujours se trouver dans un passage fourni au modèle.
+    """
     if not response.get("answerable"):
         reason = str(
             response.get("refusal_reason") or "Les passages ne permettent pas de répondre."
@@ -118,12 +170,19 @@ def verify(response: Mapping[str, Any], passages: Mapping[str, Mapping[str, str]
     for citation in citations:
         passage_id = str(citation.get("passage_id", ""))
         quote = str(citation.get("quote", "")).strip()
-        passage = passages.get(passage_id)
-        if passage is None:
+        candidates = _candidates(passage_id, passages, lenient=lenient)
+        if not candidates:
             return Answer(REFUSED, reason=f"Citation d'un passage non fourni : {passage_id}.")
-        if len(quote) < MIN_QUOTE_CHARS or _normalize(quote) not in _normalize(passage["text"]):
+        matching = [
+            pid
+            for pid in candidates
+            if len(quote) >= MIN_QUOTE_CHARS
+            and _quote_found(quote, passages[pid]["text"], lenient=lenient)
+        ]
+        if not matching:
             return Answer(REFUSED, reason=f"Extrait introuvable dans {passage_id}.")
-        sources.append(Source(passage_id, passage["citation"], quote, passage["url"]))
+        passage = passages[matching[0]]
+        sources.append(Source(matching[0], passage["citation"], quote, passage["url"]))
     return Answer(ANSWERED, text=text, sources=tuple(sources))
 
 
@@ -134,6 +193,7 @@ def answer_question(
     model: LanguageModel,
     *,
     k: int = DEFAULT_PASSAGES,
+    lenient: bool = False,
 ) -> Answer:
     """Retrouve les passages, interroge le modèle, puis vérifie chaque citation."""
     question = validate_question(question)
@@ -147,5 +207,5 @@ def answer_question(
         return Answer(REFUSED, reason="Réponse du modèle illisible : refusée.", retrieved=ids)
     if not isinstance(response, dict):
         return Answer(REFUSED, reason="Réponse du modèle mal formée : refusée.", retrieved=ids)
-    result = verify(response, {pid: passages[pid] for pid in ids})
+    result = verify(response, {pid: passages[pid] for pid in ids}, lenient=lenient)
     return Answer(result.status, result.text, result.sources, result.reason, ids)

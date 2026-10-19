@@ -145,6 +145,55 @@ def test_typographic_quotes_and_spaces_do_not_break_the_check() -> None:
     assert verify(response, passages).status == ANSWERED
 
 
+def cites(passage_id: str, quote: str) -> dict[str, Any]:
+    return {
+        "answerable": True,
+        "answer": "A.",
+        "citations": [{"passage_id": passage_id, "quote": quote}],
+    }
+
+
+def test_a_different_case_is_accepted_only_when_lenient() -> None:
+    response = cites("1005.11(c)-1", QUOTE.capitalize())
+
+    assert verify(response, PASSAGES).status == REFUSED
+    assert verify(response, PASSAGES, lenient=True).status == ANSWERED
+
+
+def test_a_sub_paragraph_of_a_provided_passage_is_accepted_only_when_lenient() -> None:
+    response = cites("1005.11(c)(1)", QUOTE)
+
+    assert verify(response, PASSAGES).status == REFUSED
+    lenient = verify(response, PASSAGES, lenient=True)
+    assert lenient.status == ANSWERED
+    assert lenient.sources[0].passage_id == "1005.11(c)-1"  # rattachée au passage fourni
+
+
+def test_a_sub_paragraph_of_a_passage_not_provided_is_still_refused() -> None:
+    assert verify(cites("1026.13(c)(1)", QUOTE), PASSAGES, lenient=True).status == REFUSED
+
+
+def test_a_quote_cut_by_an_ellipsis_is_accepted_when_its_pieces_are_in_order() -> None:
+    cut = "A financial institution shall investigate promptly ... within 10 business days"
+
+    assert verify(cites("1005.11(c)-1", cut), PASSAGES).status == REFUSED
+    assert verify(cites("1005.11(c)-1", cut), PASSAGES, lenient=True).status == ANSWERED
+
+
+def test_pieces_out_of_order_or_too_short_are_still_refused() -> None:
+    reversed_order = "within 10 business days ... A financial institution shall investigate"
+    tiny_piece = "A financial institution shall investigate promptly ... days"
+
+    assert verify(cites("1005.11(c)-1", reversed_order), PASSAGES, lenient=True).status == REFUSED
+    assert verify(cites("1005.11(c)-1", tiny_piece), PASSAGES, lenient=True).status == REFUSED
+
+
+def test_an_invented_quote_is_still_refused_when_lenient() -> None:
+    response = cites("1005.11(c)-1", "the bank may take ninety days to decide")
+
+    assert verify(response, PASSAGES, lenient=True).status == REFUSED
+
+
 def test_the_model_may_refuse_with_a_reason() -> None:
     model = FakeModel(reply(answerable=False, refusal_reason="Nothing about mortgages."))
 
