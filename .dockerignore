@@ -1,0 +1,21 @@
+# Rien de ce qui suit n'a sa place dans l'image : secrets, données, environnements, documents.
+.env
+.env.*
+!.env.example
+data/
+models/
+mlruns/
+mlartifacts/
+mlflow.db
+.venv/
+.git/
+.github/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+**/__pycache__/
+docs/
+notebooks/
+tests/
+*.zip
+*.parquet
