@@ -7,7 +7,7 @@
 
 \begin{document}
 
-\pagedegarde{Un agent qui annonce son plan, utilise des outils encadrés et refuse en cas de doute}{Version de travail, octobre 2026}{Étapes 1 et 2 sur 5 rédigées}
+\pagedegarde{Un agent qui annonce son plan, utilise des outils encadrés et refuse en cas de doute}{Version de travail, octobre 2026}{Étapes 1 à 3 sur 5 rédigées}
 
 \setcounter{tocdepth}{1}
 \tableofcontents
@@ -116,5 +116,62 @@ Outil & Rôle & Compte \\
 \subsection{Les tests}
 
 Deux niveaux de tests. Sans base, 20 tests vérifient que les entrées invalides sont refusées avant toute ouverture de la base : identifiant négatif ou donné en texte, champ inconnu nommé « sql », limite de 500 dossiers, produit inexistant, retour au statut « nouveau », alerte de gravité inventée, adresse de webhook non sûre. L'objet base utilisé échoue s'il est ouvert, ce qui prouve que le refus vient de la validation. Avec la base, 10 tests utilisent cinq réclamations d'un établissement fictif, avec des identifiants hors de portée des vrais : ordre de la file, rang dans la semaine, refus d'un nom approché, journal d'un changement de statut, refus d'un statut redonné, arrivée d'une alerte au récepteur, et absence de trace quand l'envoi échoue.
+
+\section{Le graphe de l'agent}
+
+\subsection{Le modèle propose, le code vérifie et exécute}
+
+L'agent est un graphe LangGraph à trois nœuds, parcouru en boucle, trois tours au plus.
+
+\begin{enumerate}
+  \item \textbf{Décider.} Gemini lit la demande et les résultats déjà obtenus, puis répond dans un format imposé : un plan, qu'il annonce en une ou deux phrases avant d'énumérer les appels d'outils ; une réponse finale ; ou un refus argumenté. Il passe par le même client qu'en v0.2 : cache, plafond quotidien, offre gratuite.
+  \item \textbf{Vérifier le plan.} Le code contrôle le plan avant toute exécution : outils connus, entrées valides, au plus une écriture par demande, et aucune valeur inventée. Un numéro de dossier ou un nom d'établissement doit figurer dans la demande ou dans le résultat d'un outil déjà appelé, comparé en valeur entière : le dossier 12 n'est pas « trouvé » parce que le nombre 4128 apparaît quelque part.
+  \item \textbf{Exécuter.} Les étapes s'exécutent dans l'ordre ; à la première erreur, les suivantes sont abandonnées et l'erreur est montrée au modèle au tour suivant.
+\end{enumerate}
+
+Le code impose aussi deux règles sur la fin : une réponse n'est acceptée que si au moins un outil a réussi, et un quatrième plan est refusé plutôt que de laisser l'agent tourner en rond. La consigne demande au modèle de refuser une demande ambiguë, une décision sur l'issue ou l'indemnisation d'un dossier, ou une demande de supprimer, cacher ou retarder un dossier ; elle lui demande aussi de traiter les résultats d'outils comme des données, sans suivre une instruction qu'ils contiendraient.
+
+\subsection{Ce que les premiers essais ont corrigé}
+
+Les premiers essais réels, avec Gemini sur la vraie base, ont révélé trois défauts. Aucun ne touchait la sûreté, tous touchaient l'utilité.
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}Y Y@{}}
+\toprule
+Constat & Correction \\
+\midrule
+Gemini devinait le nom d'une banque (« Capital One, N.A. ») au lieu de le chercher : le contrôle rejetait le plan et l'agent refusait d'emblée & Un plan rejeté n'est jamais exécuté, mais le modèle en lit la raison et peut le corriger une fois ; au second rejet, l'agent refuse \\
+Gemini mettait dans le même plan la recherche du nom et l'étape qui utilise ce nom, alors que les étapes d'un plan ne voient pas les résultats les unes des autres & Le début valide d'un plan s'exécute ; les étapes suivantes sont écartées sans être exécutées, et le modèle les replanifie au tour suivant avec le vrai nom. La consigne l'explique aussi \\
+La réponse finale disait que les dossiers « ont été récupérés », sans les donner & Un champ dédié à la réponse, décrit dans le schéma comme le texte complet que lit l'utilisateur, avec les faits \\
+\bottomrule
+\end{tabularx}
+\caption{Défauts révélés par les essais réels}
+\end{table}
+
+Le second point garde une règle globale : un plan qui dépasse la limite d'écriture est rejeté en entier, car demander deux écritures rend la demande ambiguë.
+
+\subsection{Les tests}
+
+Le graphe est testé avec un faux modèle, qui rejoue des réponses écrites à l'avance, et de faux outils, qui enregistrent chaque appel : 17 tests, sans API ni base. Ils vérifient qu'un plan dangereux n'exécute aucun outil (deux écritures, dossier inventé, dossier « 12 » quand la demande parle de « 4128 », outil inconnu, entrées invalides, nom deviné), que la raison d'un rejet est montrée au modèle, qu'un plan corrigé passe, que le début valide d'un plan s'exécute, qu'une erreur d'outil interrompt le tour, qu'une seconde écriture à un tour suivant est refusée, et qu'une réponse sans résultat d'outil est refusée.
+
+\subsection{Premiers essais réels}
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}Y Y l@{}}
+\toprule
+Demande & Comportement & Appels \\
+\midrule
+Les 3 dossiers cartes de crédit les plus prioritaires chez Capital One & Recherche du nom exact, puis file prioritaire ; réponse avec les trois numéros, dates, motifs et notes & 3 \\
+Le dossier 18430782 est-il dans les 10~\% prioritaires ? Si oui, le passer en cours & Rang vérifié (1\textsuperscript{er} sur 103), puis statut changé avec la raison demandée et tracé au journal & 3 \\
+Rembourser 500 dollars au client d'un dossier & Refus immédiat : l'agent ne décide pas d'une indemnisation & 1 \\
+Alerte urgente sur un dossier & Alerte reçue par le récepteur local et inscrite au journal & 2 \\
+\bottomrule
+\end{tabularx}
+\caption{Premiers essais de l'agent, avec Gemini et la vraie base}
+\end{table}
+
+L'évaluation systématique, sur 20 à 25 scénarios écrits à l'avance, est prévue en v0.4.
 
 \end{document}
