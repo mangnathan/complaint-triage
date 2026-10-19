@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
+
+import pytest
 
 from complaint_triage.db.roles import AGENT_READ, AGENT_WRITE, privilege_statements, role_statements
 from complaint_triage.db.settings import database_url, write_env_values
+from complaint_triage.db.setup import admin_password, random_passwords
 
 
 def rendered() -> list[str]:
@@ -31,6 +35,24 @@ def test_agent_queries_have_a_time_limit() -> None:
     timeouts = [s for s in rendered() if "statement_timeout" in s]
 
     assert len(timeouts) == 2
+
+
+def test_the_admin_password_lives_only_inside_the_block(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("PGPASSWORD", raising=False)
+
+    with admin_password("secret-à-ne-pas-garder"):
+        assert os.environ["PGPASSWORD"] == "secret-à-ne-pas-garder"
+
+    assert "PGPASSWORD" not in os.environ
+
+
+def test_each_account_gets_a_different_random_password() -> None:
+    first, second = random_passwords(), random_passwords()
+
+    assert set(first) == {"ct_owner", "ct_agent_read", "ct_agent_write"}
+    assert len(set(first.values())) == 3
+    assert first != second
+    assert all(len(pw) >= 32 for pw in first.values())
 
 
 def test_passwords_are_quoted_as_literals() -> None:
