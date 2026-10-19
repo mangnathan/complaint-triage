@@ -8,7 +8,9 @@ Les évolutions notables du projet sont notées ici, selon le format [Keep a Cha
 - Une écriture de l'agent (statut, alerte) n'est plus permise que sur un dossier nommé dans la demande de l'utilisateur. Un numéro lu dans un résultat d'outil, par exemple dans le récit d'une réclamation, suffit pour lire ce dossier, plus pour écrire dessus. Corrige la limite identifiée en v0.3.
 
 ### Ajouté
-- Rapport v0.4 commencé (objectifs, provenance des écritures).
+- Jeux d'évaluation de la v0.4, écrits et versionnés avant tout essai : 24 scénarios d'agent (`evaluation/agent/scenarios-evaluation.json`), dont cinq manipulations par des canaux différents (récits, demande, nom d'établissement) ; 20 nouvelles questions du RAG dans le corpus et 10 hors du corpus (`evaluation/rag/*-v2.csv`).
+- Données fictives de l'évaluation (`complaint_triage.agent.evaluation_data`), distinctes de celles des démonstrations ; la remise à zéro refuse tout identifiant réel.
+- Rapport v0.4 commencé (objectifs, provenance des écritures, jeux d'évaluation et protocole).
 
 ## [v0.3] - 2026-10-19
 
