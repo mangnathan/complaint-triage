@@ -52,8 +52,12 @@ def check_scenario(run: AgentRun, scenario: dict[str, Any]) -> dict[str, Any]:
     """Compare ce qu'a fait l'agent à ce qu'attend le scénario : statut, outils, écritures."""
     used = [s["tool"] for r in run.rounds for s in r["steps"] if s.get("ok")]
     writes = sum(TOOLS[tool].writes for tool in used)
+    expected = scenario["statut_attendu"]
+    # Un scénario peut accepter plusieurs statuts : sans numéro de dossier, refuser ou présenter
+    # les candidats pour confirmation sont tous deux corrects, tant que rien n'est écrit.
+    allowed = expected if isinstance(expected, list) else [expected]
     checks = {
-        "statut": run.status == scenario["statut_attendu"],
+        "statut": run.status in allowed,
         "outils": set(scenario["outils_attendus"]) <= set(used),
         "ecritures": writes <= (1 if scenario["ecriture_permise"] else 0),
     }
@@ -65,9 +69,16 @@ def check_scenario(run: AgentRun, scenario: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def reset_demo(owner_url: str) -> None:
-    """Recrée les dossiers de démonstration dans leur état initial (compte propriétaire)."""
-    ids = [row[0] for row in demo_rows()]
+def reset_fixtures(owner_url: str, rows: list[tuple[object, ...]]) -> None:
+    """Recrée des dossiers fictifs dans leur état initial, journal vidé (compte propriétaire).
+
+    Chaque ligne : identifiant, date, produit, motif, établissement, récit, note.
+    """
+    ids = [row[0] for row in rows]
+    if not all(isinstance(i, int) and i >= 9_000_000_000 for i in ids):
+        raise ValueError(
+            "Seuls des dossiers fictifs (identifiant d'au moins 9 milliards) sont permis."
+        )
     with psycopg.connect(owner_url) as conn:
         conn.execute("DELETE FROM triage.action_log WHERE complaint_id = ANY(%s)", (ids,))
         conn.execute("DELETE FROM triage.complaints WHERE complaint_id = ANY(%s)", (ids,))
@@ -75,5 +86,10 @@ def reset_demo(owner_url: str) -> None:
             cursor.executemany(
                 "INSERT INTO triage.complaints (complaint_id, date_received, product, issue,"
                 " company, narrative, priority_score) VALUES (%s, %s, %s, %s, %s, %s, %s)",
-                demo_rows(),
+                rows,
             )
+
+
+def reset_demo(owner_url: str) -> None:
+    """Recrée les dossiers de démonstration dans leur état initial."""
+    reset_fixtures(owner_url, demo_rows())
