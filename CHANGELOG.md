@@ -7,7 +7,9 @@ Les évolutions notables du projet sont notées ici, selon le format [Keep a Cha
 ### Ajouté
 - Base PostgreSQL (`complaint_triage.db`) : trois comptes au moindre privilège (propriétaire ; agent en lecture seule ; agent qui ne peut modifier que le statut d'un dossier et écrire dans le journal), limite de 5 secondes par requête, schéma `triage` avec les réclamations et le journal des actions. Script de mise en place (`scripts/db/setup_database.py`) qui tire les mots de passe au hasard et les écrit dans `.env` sans les afficher. Tests d'intégration qui tentent les opérations interdites sur la vraie base.
 - Chargement de la file (`python -m complaint_triage.db`) : 140 512 réclamations reçues depuis le 1er janvier 2026, sans issue ni code postal, notées par la règle retenue en v0.1.
-- Rapport v0.3 commencé (objectifs et base de données).
+- Outils de l'agent (`complaint_triage.agent.tools`) : recherche d'un établissement, lecture d'une réclamation, rang dans la file de la semaine, file prioritaire d'un établissement, question de réglementation par le RAG, changement de statut et alerte. Entrées validées par pydantic avant toute action, requêtes écrites dans le code et paramétrées, chaque écriture tracée au journal dans la même transaction.
+- Alertes par webhook (`complaint_triage.agent.alerts`) et récepteur local qui n'écoute que sur 127.0.0.1 (`scripts/agent/alert_receiver.py`).
+- Rapport v0.3 commencé (objectifs, base de données, outils).
 
 ## [v0.2] - 2026-10-18
 

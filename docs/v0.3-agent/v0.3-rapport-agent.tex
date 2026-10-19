@@ -7,7 +7,7 @@
 
 \begin{document}
 
-\pagedegarde{Un agent qui annonce son plan, utilise des outils encadrés et refuse en cas de doute}{Version de travail, octobre 2026}{Étape 1 sur 5 rédigée}
+\pagedegarde{Un agent qui annonce son plan, utilise des outils encadrés et refuse en cas de doute}{Version de travail, octobre 2026}{Étapes 1 et 2 sur 5 rédigées}
 
 \setcounter{tocdepth}{1}
 \tableofcontents
@@ -78,5 +78,43 @@ La première exécution a échoué sur un défaut propre à Windows. psycopg tra
 La table des réclamations ne contient que ce qu'une banque connaît à l'arrivée d'une réclamation : produit, motif, établissement, État, canal, étiquettes et récit s'il existe. Elle ne contient ni l'issue, qui est la cible du modèle, ni le code postal, dont l'agent n'a pas besoin : c'est le principe de minimisation des données. S'y ajoutent la note de priorité et un statut, limité à quatre valeurs (nouveau, en cours, traité, escaladé). Un journal enregistre chaque action de l'agent, avec son auteur et sa date.
 
 La file contient les 140\,512 réclamations reçues du 1\textsuperscript{er} janvier au 16 octobre 2026, auprès de 691 établissements. Leur note est celle de la règle retenue en v0.1, apprise sur les issues connues jusqu'au 31 décembre 2025, comme elle le serait en production. Le chargement passe par une table temporaire et la commande \texttt{COPY}, puis insère ou met à jour les réclamations d'un bloc ; le relancer ne modifie pas les statuts déjà changés.
+
+\section{Les outils de l'agent}
+
+\subsection{Le principe : l'agent choisit, le code exécute}
+
+L'agent ne peut jamais écrire de SQL ni lancer une commande. Il choisit un outil dans une liste fermée et lui donne des valeurs. Chaque outil décrit ses entrées par un modèle pydantic : types, bornes et valeurs permises. Les entrées sont contrôlées avant toute action ; un champ inconnu, une valeur hors bornes ou un type inattendu (« 123 » en texte au lieu d'un nombre) sont refusés, avec un message qui dit quoi corriger, plutôt que convertis en silence. Les requêtes sont écrites dans le code, et les valeurs y passent toujours en paramètres.
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}l Y l@{}}
+\toprule
+Outil & Rôle & Compte \\
+\midrule
+\texttt{find\_company} & Retrouver le nom exact d'un établissement à partir d'une partie du nom & lecture \\
+\texttt{get\_complaint} & Lire une réclamation & lecture \\
+\texttt{priority\_context} & Rang du dossier dans sa file de la semaine (même banque, même produit), et s'il fait partie des 10~\% traités en premier & lecture \\
+\texttt{list\_priority\_queue} & Dossiers les plus prioritaires d'un établissement & lecture \\
+\texttt{search\_regulations} & Question de réglementation, par le RAG de la v0.2 & aucun \\
+\texttt{update\_status} & Changer le statut d'un dossier, avec une raison & écriture \\
+\texttt{raise\_alert} & Alerter un responsable sur un dossier & écriture \\
+\bottomrule
+\end{tabularx}
+\caption{Les sept outils}
+\end{table}
+
+\subsection{Les garde-fous de chaque outil}
+
+\begin{itemize}
+  \item \textbf{Les noms d'établissement doivent être exacts.} Un nom approché (« Banque fictive » au lieu du nom complet) est refusé, avec l'invitation à utiliser \texttt{find\_company}. L'agent ne peut pas agir sur une banque qu'il a devinée. Dans la recherche par nom, les caractères spéciaux de \texttt{LIKE} sont neutralisés : « \% » cherche un vrai « \% », et non n'importe quel texte.
+  \item \textbf{Un dossier ne recule jamais.} \texttt{update\_status} n'accepte que « en cours », « traité » ou « escaladé » : l'agent ne peut pas remettre un dossier à « nouveau ». Une raison est obligatoire. Redonner le même statut est refusé, ce qui évite des écritures en double si l'agent répète une action.
+  \item \textbf{Chaque écriture est tracée dans la même transaction.} Le changement de statut et sa ligne au journal (statut avant, après, raison) sont validés ensemble ou annulés ensemble. Pour une alerte, l'inscription au journal n'a lieu que si l'envoi réussit ; un envoi qui échoue ne laisse aucune trace d'une alerte qui n'est pas partie.
+  \item \textbf{Les alertes ne sortent pas du poste.} Elles sont envoyées en JSON à un webhook. L'adresse doit être en https, ou en http vers la machine locale seulement. Pendant le développement, un petit récepteur, qui n'écoute que sur 127.0.0.1, les enregistre dans un fichier ; un salon Discord ou Slack pourra le remplacer sans changer l'agent.
+  \item \textbf{Des récits tronqués.} Un récit est renvoyé limité à 2\,000 caractères, pour ne pas surcharger le modèle de langage.
+\end{itemize}
+
+\subsection{Les tests}
+
+Deux niveaux de tests. Sans base, 20 tests vérifient que les entrées invalides sont refusées avant toute ouverture de la base : identifiant négatif ou donné en texte, champ inconnu nommé « sql », limite de 500 dossiers, produit inexistant, retour au statut « nouveau », alerte de gravité inventée, adresse de webhook non sûre. L'objet base utilisé échoue s'il est ouvert, ce qui prouve que le refus vient de la validation. Avec la base, 10 tests utilisent cinq réclamations d'un établissement fictif, avec des identifiants hors de portée des vrais : ordre de la file, rang dans la semaine, refus d'un nom approché, journal d'un changement de statut, refus d'un statut redonné, arrivée d'une alerte au récepteur, et absence de trace quand l'envoi échoue.
 
 \end{document}
