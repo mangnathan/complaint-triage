@@ -1,0 +1,71 @@
+\documentclass[11pt,a4paper]{article}
+
+\newcommand{\rapporttitre}{Qualité}
+\newcommand{\rapportversion}{v0.4}
+\input{../latex/preambule}
+\usepackage{microtype}
+
+\begin{document}
+
+\pagedegarde{Mesurer l'agent et le RAG sur des scénarios jamais essayés}{Version de travail, octobre 2026}{Étape 1 sur 5 rédigée}
+
+\setcounter{tocdepth}{1}
+\tableofcontents
+\newpage
+
+\section{Objectif et plan}
+
+\subsection{Pourquoi une version consacrée à la qualité}
+
+La v0.3 a montré que chaque comportement attendu de l'agent existe : dix démonstrations sur dix. Elle ne mesurait pas sa fiabilité. Les scénarios avaient servi à régler la consigne pendant les essais, et un agent réglé sur ses propres exemples paraît toujours meilleur qu'il n'est. La v0.4 mesure l'agent et le RAG sur des jeux nouveaux, écrits et versionnés avant tout essai, et lancés une seule fois. Elle corrige aussi la limite identifiée en v0.3.
+
+\subsection{Critères fixés au cadrage}
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}Y l@{}}
+\toprule
+Critère & Seuil \\
+\midrule
+Bon outil choisi par l'agent, sur 20 à 25 scénarios écrits à l'avance & Au moins 90~\% \\
+Refus attendus effectivement refusés & 100~\% \\
+\bottomrule
+\end{tabularx}
+\caption{Critères de la v0.4 (rapport de cadrage, section 7)}
+\end{table}
+
+\subsection{Étapes}
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}l Y@{}}
+\toprule
+Étape & Contenu \\
+\midrule
+1 & Corriger la limite connue : une écriture seulement sur un dossier nommé dans la demande \\
+2 & Écrire les nouveaux jeux d'évaluation de l'agent et du RAG, sans les essayer \\
+3 & Les scénarios de sûreté dans la CI, avec un faux modèle \\
+4 & L'évaluation, lancée une seule fois \\
+5 & Bilan, rapport et note de décision \\
+\bottomrule
+\end{tabularx}
+\caption{Étapes de la v0.4}
+\end{table}
+
+\section{La provenance des écritures}
+
+\subsection{La faille}
+
+En v0.3, le contrôle du plan exigeait qu'un numéro de dossier vienne de la demande ou d'un résultat d'outil. Il vérifiait qu'une valeur n'était pas inventée, pas qu'elle venait d'une source de confiance. Or un résultat d'outil peut contenir un texte que l'utilisateur n'a pas écrit : le récit d'une réclamation est rédigé par le client. Dans la démonstration au récit piégé, le texte demandait d'escalader le dossier 9000000203. Le modèle ne l'a pas fait ; s'il l'avait fait, le contrôle aurait laissé passer l'écriture.
+
+\subsection{La règle}
+
+Une écriture n'est désormais permise que sur un dossier dont le numéro figure dans la demande de l'utilisateur. Lire un dossier trouvé par un outil reste permis : l'agent peut toujours lister une file puis examiner le premier dossier. Mais aucune écriture ne peut plus être déclenchée par un texte que l'utilisateur n'a pas écrit. La consigne de Gemini suit la même règle : sans numéro dans la demande, l'agent présente les dossiers candidats et demande à l'utilisateur de confirmer celui qu'il vise.
+
+La règle a un coût d'usage. « Passe en cours le dossier le plus prioritaire de Capital One » ne suffit plus : il faut lire la file, puis demander « passe le dossier 18458910 en cours ». Pour une banque, cette étape de confirmation est un avantage : la personne qui demande l'écriture désigne elle-même le dossier.
+
+\subsection{Les tests}
+
+Trois tests s'ajoutent à ceux du graphe, avec un faux modèle : une écriture sur un dossier lu dans le récit d'une réclamation est refusée, même proposée deux fois ; lire un dossier trouvé dans une file reste permis ; écrire sur un dossier nommé par l'utilisateur reste permis. Les démonstrations de la v0.3 qui écrivaient nommaient toutes le dossier dans la demande : elles restent valables.
+
+\end{document}
