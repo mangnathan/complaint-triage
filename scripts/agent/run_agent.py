@@ -10,50 +10,10 @@ from __future__ import annotations
 import argparse
 import json
 import os
-from collections.abc import Callable
 from pathlib import Path
-from typing import Any
 
-import pandas as pd
-
-from complaint_triage.agent.database import AgentDatabase
-from complaint_triage.agent.graph import Agent
-from complaint_triage.agent.tools import ToolContext, call_tool
-from complaint_triage.rag.__main__ import PASSAGES_FILE
-from complaint_triage.rag.answer import Answer, answer_question
-from complaint_triage.rag.embeddings import EMBEDDING_MODEL, FastEmbedder, cached_passage_vectors
-from complaint_triage.rag.llm import (
-    CachedModel,
-    GeminiModel,
-    LanguageModel,
-    QuotaGuard,
-    load_dotenv,
-)
-from complaint_triage.rag.passages import passages_by_id
-from complaint_triage.rag.retrieval import DenseIndex
-
-RAG_PASSAGES = 10  # réglage retenu en v0.2
-
-
-def regulation_answerer(data_dir: Path, model: LanguageModel) -> Callable[[str], Answer]:
-    """Le RAG n'est chargé qu'au premier appel : la plupart des demandes n'en ont pas besoin."""
-    state: dict[str, Any] = {}
-
-    def ask(question: str) -> Answer:
-        if not state:
-            passages = pd.read_parquet(data_dir / PASSAGES_FILE)
-            documents = (passages["heading"] + "\n" + passages["text"]).tolist()
-            embedder = FastEmbedder(cache_dir=data_dir / "models" / "fastembed")
-            vectors = cached_passage_vectors(
-                embedder, EMBEDDING_MODEL, documents, data_dir / "rag" / "vectors.npz"
-            )
-            state["retriever"] = DenseIndex(passages["passage_id"].tolist(), vectors, embedder)
-            state["passages"] = passages_by_id(passages)
-        return answer_question(
-            question, state["retriever"], state["passages"], model, k=RAG_PASSAGES
-        )
-
-    return ask
+from complaint_triage.agent.runtime import build_agent
+from complaint_triage.rag.llm import QuotaGuard, load_dotenv
 
 
 def main() -> None:
@@ -64,13 +24,7 @@ def main() -> None:
 
     load_dotenv(Path(".env"))
     guard = QuotaGuard(args.data_dir / "rag" / "quota.json")
-    model = CachedModel(GeminiModel(guard), args.data_dir / "rag" / "llm-cache")
-    context = ToolContext(
-        database=AgentDatabase.from_environment(),
-        ask_regulations=regulation_answerer(args.data_dir, model),
-        alert_url=os.environ.get("ALERT_WEBHOOK_URL", ""),
-    )
-    agent = Agent(model, lambda name, arguments: call_tool(context, name, arguments))
+    agent = build_agent(args.data_dir, guard, os.environ.get("ALERT_WEBHOOK_URL", ""))
     run = agent.run(args.request)
 
     for number, round_ in enumerate(run.rounds, start=1):
