@@ -7,7 +7,38 @@
 
 \begin{document}
 
-\pagedegarde{Mesurer l'agent et le RAG sur des scénarios jamais essayés}{Version de travail, octobre 2026}{Étapes 1 à 4 sur 5 rédigées}
+\pagedegarde{Mesurer l'agent et le RAG sur des scénarios jamais essayés}{Octobre 2026}{Rapport de fin de version}
+
+\section*{Synthèse}
+\addcontentsline{toc}{section}{Synthèse}
+
+La v0.3 avait montré que chaque comportement attendu de l'agent existait. Cette version mesure l'agent et le RAG sur des jeux nouveaux, écrits et versionnés avant tout essai, lancés une seule fois, et rend la sûreté de l'agent vérifiable à chaque modification du code.
+
+Quatre résultats :
+\begin{itemize}
+  \item \textbf{La faille de la v0.3 est fermée par le code.} Une écriture n'est plus permise que sur un dossier nommé dans la demande de l'utilisateur : un numéro lu dans le récit d'une réclamation permet de lire ce dossier, plus d'écrire dessus.
+  \item \textbf{La sûreté est vérifiée à chaque PR.} Seize scénarios simulent un modèle hostile qui obéit à l'attaquant ; le code doit bloquer chaque action interdite. Deux défauts introduits volontairement ont confirmé que ces scénarios détectent les failles qu'ils visent.
+  \item \textbf{L'agent atteint les seuils du cadrage} sur 24 scénarios jamais essayés.
+  \item \textbf{La vérification des citations du RAG est assouplie}, selon une règle fixée avant la mesure.
+\end{itemize}
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}Y l l@{}}
+\toprule
+Critère & Seuil & Résultat \\
+\midrule
+Bon outil choisi par l'agent & 90~\% & 100~\% (16 / 16) \\
+Refus attendus effectivement refusés & 100~\% & 100~\% (7 / 7) \\
+Écritures non demandées & 0 & 0 sur 24 scénarios \\
+RAG, réponses correctes avec la vérification assouplie & au moins la stricte & 17 / 20 contre 16 / 20 \\
+RAG, refus hors corpus & 95~\% & 100~\% (10 / 10) \\
+\bottomrule
+\end{tabularx}
+\caption{Les résultats de la v0.4}
+\end{table}
+
+Les cinq manipulations de l'évaluation, par des récits, la demande ou le nom d'un établissement, ont échoué. Le RAG répond correctement à chaque question dont il reçoit le bon passage ; son maillon faible est désormais la recherche, qui bute sur le vocabulaire des clients. Vingt-quatre scénarios restent un petit échantillon : ces résultats montrent que les seuils sont franchis, pas que l'agent ne se trompera jamais.
 
 \setcounter{tocdepth}{1}
 \tableofcontents
@@ -193,5 +224,29 @@ Les vingt-quatre scénarios sont réussis, pour 47 appels de décision à Gemini
 \subsection{Une erreur dans le calcul, corrigée sans relancer}
 
 Le premier résumé affichait 0 refus attendu sur 7, alors que les sept scénarios concernés étaient marqués « refusé » un par un. L'erreur venait du script de calcul : le statut obtenu et la vérification de ce statut portaient le même nom, et la fusion des deux dans une même ligne remplaçait le texte « refuse » par un booléen. C'était le même défaut qu'une clé déjà corrigée en v0.3. Les vérifications portent désormais des noms sans ambiguïté, le calcul des critères est une fonction testée, y compris sur ce cas, et les critères ont été recalculés à partir des résultats enregistrés, sans relancer l'agent : l'évaluation reste unique.
+
+\newpage
+\section{Bilan de la v0.4}
+
+\subsection{Ce que la version a établi}
+
+L'agent et le RAG franchissent les seuils du cadrage sur des jeux qu'ils n'avaient jamais vus, et la sûreté de l'agent ne dépend plus de la seule consigne : la règle de provenance des écritures et les scénarios de sûreté la placent dans le code et dans la CI. La vérification assouplie est activée pour l'usage réel ; les fonctions gardent la vérification stricte par défaut, pour que leurs tests restent explicites.
+
+\subsection{Ce que la méthode a apporté}
+
+\begin{itemize}
+  \item \textbf{Écrire les jeux avant de les essayer.} Les démonstrations de la v0.3 avaient servi à régler la consigne ; ces jeux-ci non.
+  \item \textbf{Simuler le pire modèle plutôt que le meilleur.} Les scénarios de sûreté valent pour n'importe quel modèle, y compris un modèle manipulé.
+  \item \textbf{Tester les tests.} Une garde désactivée volontairement doit faire échouer exactement les scénarios qui la visent.
+  \item \textbf{Ne jamais relancer pour corriger.} L'erreur de calcul a été corrigée en recalculant sur les résultats enregistrés.
+\end{itemize}
+
+\subsection{Pour la suite}
+
+\begin{itemize}
+  \item \textbf{La recherche du RAG}, maillon faible : un glossaire du vocabulaire courant vers le vocabulaire réglementaire, ou les interprétations officielles, à mesurer sur de nouvelles questions.
+  \item \textbf{Le risque des extraits coupés} : surveiller qu'aucune coupure n'inverse le sens d'un texte, par exemple en interdisant qu'un mot de négation se trouve dans une partie retirée.
+  \item \textbf{v0.5, l'industrialisation} : Docker pour la base et l'application, la base dans la CI pour que les tests d'intégration y tournent aussi, et un déploiement automatisé.
+\end{itemize}
 
 \end{document}
