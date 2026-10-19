@@ -17,6 +17,7 @@ dependencies = [
     "defusedxml>=0.7.1",
     "fastembed>=0.7",
     "tzdata>=2025.2",
+    "psycopg[binary]>=3.2",
 ]
 
 [dependency-groups]
