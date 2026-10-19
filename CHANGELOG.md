@@ -4,6 +4,11 @@ Les évolutions notables du projet sont notées ici, selon le format [Keep a Cha
 
 ## [Non publié]
 
+### Ajouté
+- Base PostgreSQL (`complaint_triage.db`) : trois comptes au moindre privilège (propriétaire ; agent en lecture seule ; agent qui ne peut modifier que le statut d'un dossier et écrire dans le journal), limite de 5 secondes par requête, schéma `triage` avec les réclamations et le journal des actions. Script de mise en place (`scripts/db/setup_database.py`) qui tire les mots de passe au hasard et les écrit dans `.env` sans les afficher. Tests d'intégration qui tentent les opérations interdites sur la vraie base.
+- Chargement de la file (`python -m complaint_triage.db`) : 140 512 réclamations reçues depuis le 1er janvier 2026, sans issue ni code postal, notées par la règle retenue en v0.1.
+- Rapport v0.3 commencé (objectifs et base de données).
+
 ## [v0.2] - 2026-10-18
 
 Bilan ([ADR 0003](docs/adr/0003-rag-avec-citations-verifiees.md)) : sur le test, 13 réponses sur 13 citent une source vérifiable et 20 questions hors corpus sur 20 sont refusées, tentatives de détournement comprises ; les deux critères du cadrage sont atteints, et aucune réponse ne cite une mauvaise source. Le RAG refuse en revanche 7 questions de test sur 20 auxquelles il aurait pu répondre.

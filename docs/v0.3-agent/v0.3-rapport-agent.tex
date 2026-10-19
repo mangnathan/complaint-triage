@@ -1,0 +1,82 @@
+\documentclass[11pt,a4paper]{article}
+
+\newcommand{\rapporttitre}{Agent}
+\newcommand{\rapportversion}{v0.3}
+\input{../latex/preambule}
+\usepackage{microtype}
+
+\begin{document}
+
+\pagedegarde{Un agent qui annonce son plan, utilise des outils encadrés et refuse en cas de doute}{Version de travail, octobre 2026}{Étape 1 sur 5 rédigée}
+
+\setcounter{tocdepth}{1}
+\tableofcontents
+\newpage
+
+\section{Objectif et plan}
+
+\subsection{Ce que doit faire l'agent}
+
+Le cadrage décrit un agent qui lit une réclamation, annonce son plan, puis agit avec des outils encadrés : calculer la priorité d'un dossier, chercher la règle applicable, interroger la base, mettre à jour un statut, alerter un responsable. S'il manque d'éléments, ou si la demande est ambiguë, il refuse et l'explique (besoin B4). L'outil change l'ordre de traitement et prépare le travail ; il ne décide jamais de l'issue d'un dossier.
+
+Les deux versions précédentes fournissent ses outils de raisonnement : la règle de priorisation retenue en v0.1, et le RAG de la v0.2, qui répond en citant les textes ou refuse. La v0.3 ajoute la base de données, les outils d'action et l'agent qui les orchestre. L'évaluation formelle de l'agent, sur 20 à 25 scénarios écrits à l'avance, est prévue en v0.4.
+
+\subsection{Étapes}
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}l Y@{}}
+\toprule
+Étape & Contenu \\
+\midrule
+1 & Base de données : comptes au moindre privilège, schéma, file de réclamations \\
+2 & Outils de l'agent, sans modèle de langage : entrées validées, requêtes paramétrées \\
+3 & Le graphe de l'agent : plan, validation du plan par le code, exécution, réponse ou refus \\
+4 & Premiers scénarios de démonstration \\
+5 & Bilan, rapport et note de décision \\
+\bottomrule
+\end{tabularx}
+\caption{Étapes de la v0.3}
+\end{table}
+
+\section{La base de données}
+
+\subsection{Pourquoi PostgreSQL, installé sur la machine}
+
+Le cadrage a retenu PostgreSQL, courant en entreprise, plutôt que SQLite, peu représentatif d'un environnement de production. Il est installé directement sur le poste (version 18.6), en service Windows à démarrage manuel : il ne consomme rien quand le projet n'est pas utilisé. Docker, plus lourd sur une machine de 8~Go, arrivera en v0.5 avec l'industrialisation.
+
+\subsection{Trois comptes, au moindre privilège}
+
+Un agent qui agit sur une base doit être limité par la base elle-même, pas seulement par son code. Si le code ou le modèle de langage se trompait, les droits empêcheraient l'erreur.
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}l Y@{}}
+\toprule
+Compte & Droits \\
+\midrule
+\texttt{ct\_owner} & Crée les tables et charge les données. Jamais utilisé par l'agent. \\
+\texttt{ct\_agent\_read} & Lecture seule des réclamations et du journal ; transactions en lecture seule par défaut. \\
+\texttt{ct\_agent\_write} & Modifie uniquement les deux colonnes de statut d'un dossier, et ajoute des lignes au journal. \\
+\bottomrule
+\end{tabularx}
+\caption{Les comptes de la base}
+\end{table}
+
+Les deux comptes de l'agent ont aussi une limite de 5 secondes par requête, pour qu'une requête ne puisse jamais bloquer la base. Aucun ne peut supprimer quoi que ce soit.
+
+Les droits sont vérifiés par des tests qui tentent réellement les opérations interdites sur la base : écrire avec le compte de lecture, y compris après avoir désactivé le mode lecture seule ; modifier la note de priorité ou la banque d'un dossier ; supprimer une réclamation ou une ligne du journal ; écrire un statut inconnu. PostgreSQL refuse chacune d'elles. Ces tests demandent la base : ils tournent sur le poste et sont sautés en CI.
+
+\subsection{La mise en place et les secrets}
+
+Un script crée les comptes, la base, le schéma et les droits. Il demande le mot de passe du super-utilisateur en saisie masquée et ne l'enregistre nulle part. Les mots de passe des trois comptes sont tirés au hasard (32 caractères) et écrits dans le fichier \texttt{.env}, sans jamais être affichés ; le script vérifie d'abord que Git ignore bien ce fichier. Relancer le script change les mots de passe, ce qui sert en cas de fuite. Les ordres SQL sont composés avec les outils de psycopg, qui échappent les identifiants et les valeurs ; un test vérifie qu'un mot de passe contenant « \texttt{'; DROP ROLE} » reste un simple texte.
+
+La première exécution a échoué sur un défaut propre à Windows. psycopg transmet le mot de passe à libpq, la bibliothèque de connexion de PostgreSQL, sans guillemets s'il ne contient pas d'espace. Or, sous Windows, libpq prend l'octet \texttt{0xA0} pour un espace, et cet octet fait partie du codage UTF-8 de « à ». Un mot de passe contenant ce caractère, fréquent sur un clavier français, était donc coupé en deux. Je l'ai établi en reproduisant l'erreur avec des mots de passe factices, sans jamais connaître le vrai. Le mot de passe administrateur passe désormais par la variable \texttt{PGPASSWORD}, lue telle quelle, propre au processus et effacée à la fin.
+
+\subsection{Le schéma et la file}
+
+La table des réclamations ne contient que ce qu'une banque connaît à l'arrivée d'une réclamation : produit, motif, établissement, État, canal, étiquettes et récit s'il existe. Elle ne contient ni l'issue, qui est la cible du modèle, ni le code postal, dont l'agent n'a pas besoin : c'est le principe de minimisation des données. S'y ajoutent la note de priorité et un statut, limité à quatre valeurs (nouveau, en cours, traité, escaladé). Un journal enregistre chaque action de l'agent, avec son auteur et sa date.
+
+La file contient les 140\,512 réclamations reçues du 1\textsuperscript{er} janvier au 16 octobre 2026, auprès de 691 établissements. Leur note est celle de la règle retenue en v0.1, apprise sur les issues connues jusqu'au 31 décembre 2025, comme elle le serait en production. Le chargement passe par une table temporaire et la commande \texttt{COPY}, puis insère ou met à jour les réclamations d'un bloc ; le relancer ne modifie pas les statuts déjà changés.
+
+\end{document}
