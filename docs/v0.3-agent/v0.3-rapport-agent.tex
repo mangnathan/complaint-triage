@@ -7,7 +7,23 @@
 
 \begin{document}
 
-\pagedegarde{Un agent qui annonce son plan, utilise des outils encadrés et refuse en cas de doute}{Version de travail, octobre 2026}{Étapes 1 à 4 sur 5 rédigées}
+\pagedegarde{Un agent qui annonce son plan, utilise des outils encadrés et refuse en cas de doute}{Octobre 2026}{Rapport de fin de version}
+
+\section*{Synthèse}
+\addcontentsline{toc}{section}{Synthèse}
+
+Cette version donne au chargé de réclamations un agent qui agit sur la file de réclamations. Il lit une demande, annonce son plan, utilise des outils encadrés et répond ou refuse. Il réunit les deux briques précédentes : la règle de priorisation de la v0.1, appliquée aux 140\,512 réclamations reçues depuis janvier 2026, et le RAG de la v0.2 pour les questions de réglementation.
+
+La sûreté repose sur trois couches, de la plus profonde à la plus proche du modèle :
+\begin{itemize}
+  \item \textbf{la base} : l'agent utilise un compte en lecture seule et un compte qui ne peut modifier que le statut d'un dossier et écrire au journal. PostgreSQL refuse le reste, ce que des tests vérifient en tentant réellement les opérations interdites ;
+  \item \textbf{les outils} : sept outils dans une liste fermée, aux entrées validées par pydantic ; l'agent ne peut jamais écrire de SQL ;
+  \item \textbf{le contrôle du plan} : avant toute exécution, le code vérifie chaque plan proposé par Gemini, avec une écriture au plus par demande et aucun numéro ni nom de banque inventé.
+\end{itemize}
+
+Les premiers essais réels ont révélé trois défauts d'utilité : un nom de banque deviné, des étapes dépendantes regroupées dans un même plan, et une réponse sans les faits. Tous ont été corrigés sans affaiblir les contrôles.
+
+Dix démonstrations sur une banque fictive, écrites avant d'être lancées, sont toutes réussies : lectures, question de réglementation, écritures demandées, quatre refus et une tentative de manipulation cachée dans le récit d'une réclamation, que l'agent a ignorée. Une limite est identifiée : le contrôle vérifie qu'une valeur n'est pas inventée, pas qu'elle vient d'une source de confiance. Elle sera traitée et mesurée en v0.4, sur un nouveau jeu de scénarios.
 
 \setcounter{tocdepth}{1}
 \tableofcontents
@@ -216,5 +232,28 @@ Pour la manipulation, deux barrières ont joué. La consigne demande de traiter 
 \subsection{Portée de ces résultats}
 
 Dix démonstrations réussies ne mesurent pas la fiabilité de l'agent : elles montrent que chaque comportement attendu existe. Les scénarios ont aussi servi à régler la consigne pendant les essais. L'évaluation de la v0.4 utilisera donc un nouveau jeu de 20 à 25 scénarios, écrits sans les avoir essayés, avec les seuils du cadrage : au moins 90~\% d'outils bien choisis, et 100~\% de refus attendus effectivement refusés.
+
+\section{Bilan de la v0.3}
+
+\subsection{Ce que la version a établi}
+
+L'agent prévu au cadrage existe et fonctionne sur les données réelles : il annonce son plan, utilise ses outils, trace chaque écriture et refuse ce qui sort de son rôle. Il ne décide jamais de l'issue d'un dossier ni d'une indemnisation, et il ne peut ni supprimer ni faire reculer un dossier dans la file.
+
+\subsection{Les choix qui ont compté}
+
+\begin{itemize}
+  \item \textbf{Limiter l'agent par la base elle-même.} Les droits de PostgreSQL ne dépendent ni du code ni du modèle de langage ; ils sont vérifiés par des tests qui tentent les opérations interdites.
+  \item \textbf{Des outils fermés plutôt que du SQL.} Le modèle choisit quoi faire, le code décide comment.
+  \item \textbf{Vérifier le plan avant de l'exécuter}, dans un nœud du graphe que le modèle ne peut pas contourner, et expliquer un rejet plutôt que refuser sèchement.
+  \item \textbf{Essayer tôt, sur les vraies données.} Les trois défauts d'utilité n'apparaissaient dans aucun test avec un faux modèle.
+  \item \textbf{Des démonstrations reproductibles}, sur une banque fictive remise à zéro, pour ne plus jamais écrire sur une vraie réclamation.
+\end{itemize}
+
+\subsection{Pour la suite}
+
+\begin{itemize}
+  \item \textbf{v0.4, la qualité} : un nouveau jeu de 20 à 25 scénarios jamais essayés, avec les seuils du cadrage (90~\% d'outils bien choisis, 100~\% de refus attendus) ; plusieurs variantes de manipulation ; une écriture autorisée seulement sur un dossier nommé dans la demande ; les scénarios en CI avec un faux modèle ; et les assouplissements de la vérification du RAG notés en v0.2.
+  \item \textbf{v0.5, l'industrialisation} : Docker pour la base et l'application ; PostgreSQL et pgvector dans des conteneurs ; un test d'intégration de la base en CI.
+\end{itemize}
 
 \end{document}
