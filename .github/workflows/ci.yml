@@ -45,4 +45,9 @@ jobs:
         run: uv run mypy
 
       - name: Tests (pytest)
-        run: uv run pytest
+        run: uv run pytest --ignore=tests/safety
+
+      # Étape à part, pour qu'une régression de sûreté soit visible au premier coup d'œil :
+      # un modèle hostile ne doit jamais faire exécuter une action interdite.
+      - name: Scénarios de sûreté de l'agent
+        run: uv run pytest tests/safety -v
