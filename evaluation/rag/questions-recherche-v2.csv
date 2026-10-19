@@ -1,0 +1,21 @@
+id,partie,reglement,question,passages_attendus
+r01,test,Regulation E,"What must the bank tell a customer about their rights when it opens an account that allows electronic transfers?",1005.7(b)
+r02,test,Regulation E,"How far in advance must the bank warn customers before raising a fee on electronic transfers?",1005.8(a)
+r03,test,Regulation E,"Does a gym need the customer's signed permission to take monthly payments from their checking account?",1005.10(b)
+r04,test,Regulation E,"Can the bank send a replacement debit card when the old one expires without the customer asking for it?",1005.5(a)
+r05,test,Regulation E,"When is a customer considered to have told the bank that their card was lost, even if no employee acted on it?",1005.6(b)-2
+r06,test,Regulation E,"What must the notice asking customers to opt in to overdraft coverage contain?",1005.17(d)-1;1005.17(d)-2
+r07,test,Regulation Z,"What warning about paying only the minimum must appear on a credit card statement?",1026.7(b)-4;1026.7(b)-5;1026.7(b)-6
+r08,test,Regulation Z,"Can a card company charge an extra fee when the customer pays by phone?",1026.10(e)
+r09,test,Regulation Z,"If the card company does not accept mailed payments on the due date, how must it treat a payment that arrives the next business day?",1026.10(d)
+r10,test,Regulation Z,"How many days before the due date must the credit card statement be sent?",1026.5(b)-3
+r11,test,Regulation Z,"Can a 19-year-old open a credit card account on their own?",1026.51(b)
+r12,test,Regulation Z,"Can a card company give free gifts to students on campus to get them to apply?",1026.57(c)
+r13,test,Regulation Z,"What key terms must be shown on a credit card application?",1026.60(b)-1;1026.60(b)-2
+r14,test,Regulation Z,"The card company agrees that a billing error happened. What must it do?",1026.13(e)
+r15,test,Regulation Z,"Can the card issuer take money from the customer's savings account at the same bank to pay the credit card debt?",1026.12(d)
+r16,test,Regulation Z,"What must a card company do when a cardholder has died and the estate wants to pay off the balance?",1026.11(c)
+r17,test,Regulation DD,"When does interest start on a check deposited into a savings account?",1030.7(c)
+r18,test,Regulation DD,"If a savings advertisement mentions a rate of return, how must that rate be stated?",1030.8(b)
+r19,test,Regulation DD,"What is a tiered rate account?",1030.2(t)
+r20,test,Regulation DD,"Must account disclosures be given in a form the customer can keep?",1030.3(a)
