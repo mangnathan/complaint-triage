@@ -4,6 +4,10 @@ Les évolutions notables du projet sont notées ici, selon le format [Keep a Cha
 
 ## [Non publié]
 
+## [v0.3] - 2026-10-19
+
+Bilan ([ADR 0004](docs/adr/0004-agent-aux-outils-encadres.md)) : l'agent annonce son plan, utilise sept outils encadrés et répond ou refuse. Trois couches de sûreté : les droits de la base, des outils fermés aux entrées validées, et un contrôle de chaque plan par le code avant exécution. Dix démonstrations réussies sur dix, dont une manipulation cachée dans un récit. Limite connue, traitée en v0.4 : le contrôle vérifie qu'une valeur n'est pas inventée, pas qu'elle vient d'une source de confiance.
+
 ### Ajouté
 - Base PostgreSQL (`complaint_triage.db`) : trois comptes au moindre privilège (propriétaire ; agent en lecture seule ; agent qui ne peut modifier que le statut d'un dossier et écrire dans le journal), limite de 5 secondes par requête, schéma `triage` avec les réclamations et le journal des actions. Script de mise en place (`scripts/db/setup_database.py`) qui tire les mots de passe au hasard et les écrit dans `.env` sans les afficher. Tests d'intégration qui tentent les opérations interdites sur la vraie base.
 - Chargement de la file (`python -m complaint_triage.db`) : 140 512 réclamations reçues depuis le 1er janvier 2026, sans issue ni code postal, notées par la règle retenue en v0.1.
@@ -11,7 +15,7 @@ Les évolutions notables du projet sont notées ici, selon le format [Keep a Cha
 - Alertes par webhook (`complaint_triage.agent.alerts`) et récepteur local qui n'écoute que sur 127.0.0.1 (`scripts/agent/alert_receiver.py`).
 - Graphe de l'agent avec LangGraph (`complaint_triage.agent.graph`) : décider, vérifier le plan, exécuter, trois tours au plus. Le code contrôle chaque plan avant exécution (outils connus, entrées valides, une écriture au plus, aucun numéro ni établissement inventé) ; un plan rejeté peut être corrigé une fois, et le début valide d'un plan s'exécute pendant que les étapes douteuses sont écartées. Commande `scripts/agent/run_agent.py`.
 - Démonstrations reproductibles (`scripts/agent/run_demonstrations.py`) : banque fictive remise à zéro avant chaque série, dix scénarios versionnés avant le premier lancement (`evaluation/agent/scenarios-demonstration.json`), vérification automatique du statut, des outils et des écritures. Dix scénarios réussis sur dix, dont une manipulation cachée dans un récit, ignorée par l'agent.
-- Rapport v0.3 commencé (objectifs, base de données, outils, graphe, démonstrations).
+- Rapport v0.3 complet en LaTeX et en PDF (9 pages) et note de décision ADR 0004.
 
 ## [v0.2] - 2026-10-18
 
