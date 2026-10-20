@@ -40,7 +40,7 @@ Every threshold was set before the work it judges, and every test set was writte
 
 ## Reports (in French)
 
-One PDF report and one decision record per version: [framing](docs/pdf/complaint-triage_v0.0_Rapport-de-cadrage.pdf), [data and scoring](docs/pdf/complaint-triage_v0.1_Rapport-donnees-et-scoring.pdf), [RAG](docs/pdf/complaint-triage_v0.2_Rapport-RAG.pdf), [agent](docs/pdf/complaint-triage_v0.3_Rapport-agent.pdf), [quality](docs/pdf/complaint-triage_v0.4_Rapport-qualite.pdf), [industrialisation](docs/pdf/complaint-triage_v0.5_Rapport-industrialisation.pdf). Decision records are in [docs/adr](docs/adr).
+One PDF report and one decision record per version: [framing](docs/pdf/complaint-triage_v0.0_Rapport-de-cadrage.pdf), [data and scoring](docs/pdf/complaint-triage_v0.1_Rapport-donnees-et-scoring.pdf), [RAG](docs/pdf/complaint-triage_v0.2_Rapport-RAG.pdf), [agent](docs/pdf/complaint-triage_v0.3_Rapport-agent.pdf), [quality](docs/pdf/complaint-triage_v0.4_Rapport-qualite.pdf), [industrialisation](docs/pdf/complaint-triage_v0.5_Rapport-industrialisation.pdf), [public demo](docs/pdf/complaint-triage_v1.0_Rapport-demo-publique.pdf). Decision records are in [docs/adr](docs/adr).
 
 ## Author
 

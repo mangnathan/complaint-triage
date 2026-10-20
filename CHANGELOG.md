@@ -4,6 +4,26 @@ Les évolutions notables du projet sont notées ici, selon le format [Keep a Cha
 
 ## [Non publié]
 
+## [v1.0] - 2026-10-20
+
+Bilan ([ADR 0007](docs/adr/0007-demo-publique-gratuite.md)) : le projet est en ligne, sans aucune dépense, à l'adresse https://complaint-triage-zj94.onrender.com. La démo montre la file prioritaire sur de vraies réclamations publiques, le RAG et l'agent, avec des exemples enregistrés et des questions libres plafonnées. Hugging Face ayant réservé les Spaces Docker aux comptes payants, elle tourne sur l'offre gratuite de Render ; sa base est préparée dans l'image, et un réveil prend 42 secondes.
+
+### Ajouté
+- Démo publique (`src/complaint_triage/demo/`) : interface Streamlit à quatre onglets (file prioritaire, réglementation, agent avec journal des actions, présentation), base PostgreSQL propre à l'image, avec les comptes et les droits du projet.
+- Exemples enregistrés (`scripts/demo/build_examples.py`, `examples.json`) : 4 réponses du RAG et 6 parcours de l'agent tirés des évaluations de la v0.4, relus dans le cache par un faux modèle qui refuse tout appel.
+- Mode en direct seulement avec une clé Gemini dédiée : 5 questions par visite, 100 par jour, coupé pour tous au premier refus de Google pour quota.
+- Préparation des données de la démo (`scripts/demo/build_demo_data.py`) : 30 339 réclamations reçues depuis le 1er août 2026 par les 25 établissements les plus visés, et le corpus du RAG ; jamais versionnées dans ce dépôt.
+- Publication (`scripts/demo/deploy_demo.py`) vers le dépôt de déploiement `complaint-triage-demo`, que Render reconstruit à chaque commit ; fichiers choisis un à un, seulement depuis un commit propre de `main`.
+- Tâche de CI « Image de démonstration » : lancement avec 512 Mo et le port de l'hébergeur, prête en moins de 30 s, administrateur de la base refusé par le réseau, exécution sans root.
+- Tests : forme des exemples et absence de dossier réel ; page entière exécutée sur la base, sans clé.
+- README : démo et résultats en tête de page, captures d'écran, résumé en anglais (`README.en.md`).
+- Rapport v1.0 en LaTeX et en PDF et note de décision ADR 0007.
+
+### Modifié
+- La base de la démo est préparée à la construction de l'image ; au lancement, les comptes reçoivent des mots de passe neufs et l'administrateur n'est joignable que par le socket local. Réveil ramené de plus de 150 s à 42 s.
+- La mise en place de la base est partagée entre le poste et la démo (`complaint_triage.db.setup`).
+- L'image de l'application passe sur Debian 13 (`python:3.12.15-slim-trixie`).
+
 ## [v0.5] - 2026-10-19
 
 Bilan ([ADR 0006](docs/adr/0006-industrialisation-legere.md)) : une industrialisation légère, sans rien installer sur le poste ni rien dépenser. La base PostgreSQL et l'image Docker de l'application sont testées dans la CI de GitHub à chaque PR, en trois tâches parallèles, toutes vertes dès le premier lancement.

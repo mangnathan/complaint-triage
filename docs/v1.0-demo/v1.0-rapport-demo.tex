@@ -1,0 +1,104 @@
+\documentclass[11pt,a4paper]{article}
+
+\newcommand{\rapporttitre}{Démo publique}
+\newcommand{\rapportversion}{v1.0}
+\input{../latex/preambule}
+\usepackage{microtype}
+
+\begin{document}
+
+\pagedegarde{Le projet ouvert à tous, sans aucune dépense}{Octobre 2026}{Rapport de fin de version}
+
+\section*{Synthèse}
+\addcontentsline{toc}{section}{Synthèse}
+
+La v1.0 met le projet en ligne : une démo publique, gratuite et sans inscription, à l'adresse \url{https://complaint-triage-zj94.onrender.com}. On y voit la file prioritaire d'une banque sur de vraies réclamations publiques, on y pose une question de réglementation et on y donne une demande à l'agent. Les exemples enregistrés ne coûtent aucun appel ; les questions libres passent par une clé Gemini sans facturation, plafonnées par visite et par jour. La démo tourne dans une image Docker qui contient sa propre base PostgreSQL, préparée à la construction : au réveil, elle est prête en quelques secondes. Deux imprévus ont modifié le plan en cours de route. Hugging Face a réservé ses Spaces Docker aux comptes payants, et la démo est partie sur l'offre gratuite de Render. Le premier réveil mesuré prenait plus de deux minutes ; il en prend désormais 42~secondes, presque toutes dues à l'hébergeur.
+
+\setcounter{tocdepth}{1}
+\tableofcontents
+\newpage
+
+\section{Objectif et choix}
+
+Le projet sert aussi de vitrine : un recruteur doit pouvoir le voir fonctionner en un clic, sans rien installer. La v1.0 a donc un objectif simple : une démo publique, qui montre les trois briques du projet, sur un hébergement gratuit et sans moyen de paiement, pour respecter la règle de zéro dépense.
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}l Y@{}}
+\toprule
+Choix & Raison \\
+\midrule
+Hébergement : Render, offre gratuite & Construit la même image Docker que la CI ; aucune carte demandée à l'inscription. Hugging Face, prévu au départ, exige désormais un abonnement pour Docker \\
+Base PostgreSQL dans l'image & Aucun service de base externe à créer ni à payer ; la base repart à zéro à chaque lancement \\
+Exemples enregistrés + questions libres plafonnées & La démo reste utile même si le quota du jour est épuisé \\
+Clé Gemini dédiée, dans un projet sans facturation & Le quota de la démo est séparé de celui des évaluations ; Google ne peut rien facturer \\
+Données réelles hors du dépôt principal & Elles ne vont que dans un dépôt de déploiement, \texttt{complaint-triage-demo}, que Render reconstruit à chaque commit \\
+\bottomrule
+\end{tabularx}
+\caption{Les choix de la v1.0}
+\end{table}
+
+\section{Ce que montre la démo}
+
+L'interface Streamlit compte quatre onglets.
+\begin{itemize}
+  \item \textbf{File prioritaire.} Les 30\,339 réclamations reçues depuis le 1\up{er} août 2026 par les 25 établissements les plus visés, notées par la règle retenue en v0.1. Une phrase explique pourquoi des dossiers ont la même note : c'est un taux par catégorie, et à note égale le plus ancien passe d'abord.
+  \item \textbf{Réglementation.} Quatre exemples enregistrés, trois réponses avec leurs sources cliquables vers l'eCFR et un refus hors corpus, puis une question libre.
+  \item \textbf{Agent.} Six parcours réussis de l'évaluation de la v0.4, dont un refus et deux manipulations déjouées : le plan annoncé, chaque outil appelé avec son résultat, la réponse. Puis une demande libre, le journal des actions et la remise à zéro des banques fictives, seules à recevoir des écritures.
+  \item \textbf{À propos.} Le projet en bref et le lien vers le dépôt.
+\end{itemize}
+
+Les exemples sont produits par un script qui relit les réponses dans le cache avec un faux modèle : s'il manque une réponse, le script s'arrête au lieu de consommer du quota. Un test vérifie qu'aucun numéro de dossier réel n'y figure.
+
+\newpage
+\section{Le réveil de la démo}
+
+L'offre gratuite endort la démo après 15~minutes sans visite. Le premier visiteur attend alors le réveil de l'hébergeur, puis le lancement de l'application. Dans la première version, ce lancement créait la base et rechargeait les 30\,339 réclamations, ligne par ligne, sur un processeur partagé. Le premier réveil mesuré a pris plus de deux minutes et demie, de quoi perdre un recruteur.
+
+Le système de fichiers d'un conteneur repart de l'image à chaque lancement. Préparer la base à la construction de l'image ne change donc rien à son comportement : elle est toujours remise à zéro. Le lancement se réduit à démarrer PostgreSQL et à donner aux comptes des mots de passe neufs.
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}Y r r@{}}
+\toprule
+Mesure & Avant & Après \\
+\midrule
+Démo prête après le lancement du conteneur (CI) & plus d'une minute & 4~s \\
+Premier chargement après une mise en veille (Render) & plus de 150~s & 42~s \\
+\bottomrule
+\end{tabularx}
+\caption{Le réveil de la démo, avant et après la base préparée dans l'image}
+\end{table}
+
+Ce changement ne devait rien céder sur la sécurité. Aucun mot de passe de la construction ne sert ensuite. L'administrateur de la base n'est joignable que par le socket local, pour l'utilisateur système du conteneur, sans mot de passe réseau ; les comptes du projet, par mot de passe et depuis la machine elle-même seulement. La CI vérifie qu'une connexion de l'administrateur par le réseau est refusée par la configuration, et pas seulement faute du bon mot de passe.
+
+\section{Coût et sûreté}
+
+\paragraph{Zéro dépense.} Trois couches protègent le quota. La clé appartient à un projet Google sans moyen de paiement : au pire, Google répond qu'une limite est atteinte, il ne facture jamais. L'application plafonne elle-même à 5~questions par visite et 100 par jour, sous la limite gratuite de 500. Au premier refus de Google pour quota, le mode en direct se coupe pour tous les visiteurs jusqu'au redémarrage. Render, lui, ne connaît aucune carte : au-delà de son offre, il suspendrait le service.
+
+\paragraph{Sûreté de l'agent.} L'agent de la démo est celui des v0.3 et v0.4, avec les mêmes gardes : comptes au moindre privilège, outils fermés, contrôle de chaque plan. Ses écritures ne touchent que des banques fictives, et un visiteur ne peut rien modifier durablement.
+
+\section{Tests}
+
+\begin{itemize}
+  \item \textbf{Tests unitaires} : forme des exemples attendue par l'interface, outils connus, aucun numéro de dossier réel.
+  \item \textbf{Test d'intégration de la page.} Le test de l'image vérifie seulement que Streamlit démarre, alors que le script de la page ne s'exécute qu'à la visite. Un test exécute donc la page entière sur la base, parcourt chaque exemple et vérifie que le mode en direct reste désactivé sans clé.
+  \item \textbf{Tâche de CI « Image de démonstration »} : l'image est lancée avec 512~Mo de mémoire et le port fourni par l'hébergeur, comme sur Render. Elle doit être prête en moins de 30~secondes, refuser l'administrateur par le réseau et tourner sans root.
+\end{itemize}
+
+La CI compte désormais quatre tâches bloquantes, d'une à deux minutes chacune.
+
+\section{Bilan et limites}
+
+La démo fonctionne de bout en bout : la file prioritaire, une question libre au RAG avec sa source vérifiée, et l'agent qui répond, ou refuse un remboursement sans appeler aucun outil. Plusieurs limites restent, et sont assumées :
+\begin{itemize}
+  \item \textbf{le réveil de 42~secondes} : il vient de l'offre gratuite de l'hébergeur ; il est annoncé dans le README et sur le profil ;
+  \item \textbf{la mémoire n'est pas mesurée sur Render}, dont les graphiques sont réservés aux offres payantes. Sur le poste, l'application occupe environ 310~Mo avec le modèle d'embeddings chargé ; sur Render, aucun dépassement des 512~Mo n'a été signalé après des questions en direct ;
+  \item \textbf{la phrase finale de l'agent n'est pas vérifiée} : quand il passe par l'outil de réglementation, la citation l'est, mais sa reformulation est celle du modèle. La suite serait d'afficher la réponse vérifiée telle quelle à côté de son résumé ;
+  \item \textbf{le compteur du jour repart à zéro} si le service redémarre. Ce n'est pas un risque de coût, la clé n'ayant pas de facturation, seulement un plafond moins strict ;
+  \item \textbf{l'interface est en français, les questions en anglais}, comme le corpus ; une question en français risque un refus du RAG.
+\end{itemize}
+
+Le projet atteint ainsi sa forme finale : un moteur de priorisation choisi avec un protocole strict, un RAG qui refuse plutôt que d'inventer, un agent dont la sûreté repose sur le code et la base, le tout testé à chaque modification et ouvert à tous, sans aucune dépense.
+
+\end{document}
