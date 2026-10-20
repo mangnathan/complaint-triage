@@ -33,7 +33,7 @@ Les exemples enregistrés ne coûtent aucun appel. Les questions libres passent 
 | Agent (v0.3, v0.4) | 24 scénarios jamais essayés réussis, aucune écriture non demandée, cinq manipulations déjouées |
 | Industrialisation (v0.5, v1.0) | Quatre tâches de CI bloquantes ; démo en Docker, prête 4 secondes après son lancement |
 
-Statut actuel : v1.0 en cours. La démo publique est en ligne ; restent le rapport et la note de décision de la version.
+Statut actuel : v1.0 terminée. La démo publique est en ligne ; le rapport et la note de décision de chaque version sont dans la section Documentation.
 
 ## Intégration continue
 
@@ -151,7 +151,7 @@ Avant toute mise en service, deux contrôles fixés au cadrage doivent être pas
 | v0.3 Agent | Planification, outils SQL paramétrés et webhook, refus argumentés | terminé |
 | v0.4 Qualité | Tests par outil, 20 à 25 scénarios d'évaluation en CI | terminé |
 | v0.5 Industrialisation | Base PostgreSQL et image Docker testées dans la CI, version légère | terminé |
-| v1.0 Démo publique | Interface web gratuite, exemples enregistrés, questions libres plafonnées | en ligne, clôture en cours |
+| v1.0 Démo publique | Interface web gratuite, exemples enregistrés, questions libres plafonnées | terminé |
 
 ## Documentation
 
@@ -165,6 +165,7 @@ Chaque version est livrée avec un rapport en PDF (source LaTeX dans le dépôt)
 | v0.3 | [Rapport agent](docs/pdf/complaint-triage_v0.3_Rapport-agent.pdf) ([source](docs/v0.3-agent/v0.3-rapport-agent.tex)) | [ADR 0004](docs/adr/0004-agent-aux-outils-encadres.md) |
 | v0.4 | [Rapport qualité](docs/pdf/complaint-triage_v0.4_Rapport-qualite.pdf) ([source](docs/v0.4-qualite/v0.4-rapport-qualite.tex)) | [ADR 0005](docs/adr/0005-qualite-et-surete-mesurees.md) |
 | v0.5 | [Rapport industrialisation](docs/pdf/complaint-triage_v0.5_Rapport-industrialisation.pdf) ([source](docs/v0.5-industrialisation/v0.5-rapport-industrialisation.tex)) | [ADR 0006](docs/adr/0006-industrialisation-legere.md) |
+| v1.0 | [Rapport démo publique](docs/pdf/complaint-triage_v1.0_Rapport-demo-publique.pdf) ([source](docs/v1.0-demo/v1.0-rapport-demo.tex)) | [ADR 0007](docs/adr/0007-demo-publique-gratuite.md) |
 
 ## Organisation du dépôt
 
