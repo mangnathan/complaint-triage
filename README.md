@@ -8,17 +8,41 @@ Un service réclamations traite en général ses dossiers dans l'ordre d'arrivé
 
 Le projet est pensé pour fonctionner en continu, pas comme une étude ponctuelle. Depuis le 14 août 2026, le CFPB ne publie plus le texte des réclamations. Le modèle de production doit donc se passer du texte, attendre que les issues soient connues avant d'apprendre, et être évalué en permanence sur les décisions réelles des banques.
 
-Statut actuel : v0.4 terminée. Le moteur de priorisation est choisi (v0.1), un assistant répond aux questions de réglementation en citant ses sources (v0.2), un agent agit sur la file avec des outils encadrés (v0.3), et l'ensemble est mesuré sur des scénarios jamais essayés, avec une sûreté vérifiée à chaque PR (v0.4). La base et l'image Docker de l'application sont testées dans la CI à chaque PR (v0.5). La v1.0, une démo publique gratuite, est la prochaine étape.
+## Démo en ligne
+
+**[complaint-triage-zj94.onrender.com](https://complaint-triage-zj94.onrender.com)**, gratuite et sans inscription. Elle est hébergée sur l'offre gratuite de Render : si personne ne l'a ouverte depuis un quart d'heure, le premier chargement prend environ 40 secondes.
+
+![La file prioritaire d'une banque dans la démo](docs/images/demo-file-prioritaire.png)
+
+- **File prioritaire** : les réclamations publiques reçues depuis août 2026 par les 25 établissements les plus visés, notées dès leur arrivée.
+- **Réglementation** : une question en anglais, une réponse qui cite le texte officiel, chaque citation vérifiée par le code ; sinon, un refus.
+- **Agent** : une demande en langage courant. L'agent annonce son plan, utilise des outils encadrés, puis répond ou refuse. Ses écritures ne touchent que des banques fictives, remises à zéro à chaque redémarrage.
+
+![L'agent répond à une question de réglementation en passant par l'outil prévu](docs/images/demo-agent.png)
+
+Les exemples enregistrés ne coûtent aucun appel. Les questions libres passent par une clé Gemini sans facturation, plafonnées à 5 par visite et 100 par jour.
+
+## En bref
+
+| Brique | Résultat |
+|---|---|
+| Priorisation (v0.1) | Un XGBoost ne bat pas la règle par banque sur un test ouvert une seule fois : la règle est retenue. Elle place 17,4 % des dossiers indemnisés dans les 10 % traités en premier, contre 10 % au hasard |
+| RAG (v0.2, v0.4) | 100 % de réponses sourcées et 100 % de refus hors corpus ; aucune source fausse sur les nouvelles questions |
+| Agent (v0.3, v0.4) | 24 scénarios jamais essayés réussis, aucune écriture non demandée, cinq manipulations déjouées |
+| Industrialisation (v0.5, v1.0) | Quatre tâches de CI bloquantes ; démo en Docker, prête 4 secondes après son lancement |
+
+Statut actuel : v1.0 en cours. La démo publique est en ligne ; restent le rapport et la note de décision de la version.
 
 ## Intégration continue
 
-Chaque PR passe par trois tâches en parallèle, qui bloquent la fusion en cas d'échec :
+Chaque PR passe par quatre tâches en parallèle, qui bloquent la fusion en cas d'échec :
 
 | Tâche | Contenu | Durée |
 |---|---|---|
-| Lint, types et tests | ruff, mypy strict, 205 tests unitaires, 17 scénarios de sûreté (modèle hostile) | environ 1 min |
-| Base PostgreSQL et tests d'intégration | PostgreSQL 18.6 jetable, mis en place par le script du projet, 18 tests sur les droits et les outils | moins d'1 min |
+| Lint, types et tests | ruff, mypy strict, 212 tests unitaires, 17 scénarios de sûreté (modèle hostile) | environ 1 min |
+| Base PostgreSQL et tests d'intégration | PostgreSQL 18.6 jetable, mis en place par le script du projet, 21 tests sur les droits, les outils et la page de la démo | moins d'1 min |
 | Image Docker | Construction, démarrage, exécution sans root, aucun secret ni donnée dans l'image | environ 1 min |
+| Image de démonstration | Démarrage avec 512 Mo comme l'hébergeur, en moins de 30 s, administrateur de la base refusé par le réseau | environ 1 min 30 |
 
 ## Résultat de la v0.4 : qualité et sûreté mesurées
 
@@ -125,7 +149,7 @@ Avant toute mise en service, deux contrôles fixés au cadrage doivent être pas
 | v0.3 Agent | Planification, outils SQL paramétrés et webhook, refus argumentés | terminé |
 | v0.4 Qualité | Tests par outil, 20 à 25 scénarios d'évaluation en CI | terminé |
 | v0.5 Industrialisation | Base PostgreSQL et image Docker testées dans la CI, version légère | terminé |
-| v1.0 Démo publique | Interface web gratuite sur données fictives, réponses en cache, plafond d'appels | à venir |
+| v1.0 Démo publique | Interface web gratuite, exemples enregistrés, questions libres plafonnées | en ligne, clôture en cours |
 
 ## Documentation
 
@@ -158,8 +182,10 @@ src/complaint_triage/
   rag/            corpus réglementaire de l'eCFR, recherche, réponses avec citations vérifiées
   db/             schéma PostgreSQL, comptes au moindre privilège, chargement de la file
   agent/          outils encadrés, graphe de l'agent, démonstrations
+  demo/           démo publique : base propre à l'image, interface Streamlit, exemples enregistrés
 tests/            tests unitaires (sans réseau), d'intégration (PostgreSQL) et de sûreté (modèle hostile)
 Dockerfile        image de l'application, construite et vérifiée par la CI
+demo/Dockerfile   image de la démo publique, construite et vérifiée par la CI
 ```
 
 ## Reproduire
@@ -219,6 +245,15 @@ uv run python scripts/agent/alert_receiver.py           # récepteur local d'ale
 uv run python scripts/agent/run_agent.py "Show me the 3 highest-priority new credit card complaints at Capital One."
 uv run python scripts/agent/run_demonstrations.py       # dix démonstrations sur une banque fictive
 uv run pytest tests/safety -v                           # scénarios de sûreté (modèle hostile), sans clé ni base
+```
+
+La démo (v1.0) se prépare et se publie depuis le poste. Les données réelles ne vont que dans le dépôt de déploiement, [complaint-triage-demo](https://github.com/mangnathan/complaint-triage-demo), que Render reconstruit à chaque commit.
+
+```bash
+uv run python scripts/demo/build_examples.py     # exemples enregistrés, relus dans le cache, sans appel
+uv run python scripts/demo/build_demo_data.py    # échantillon de la file et corpus du RAG dans data/demo/
+uv run python scripts/demo/deploy_demo.py --dry-run  # liste des fichiers publiés, sans rien envoyer
+uv run python scripts/demo/deploy_demo.py        # publication, seulement depuis main
 ```
 
 La décision sur la période de test (`scripts/evaluation/decide_on_test.py` sans option) a été prise une seule fois ; le script refuse de la rejouer tant que ses résultats sont présents dans `docs/v0.1-donnees-et-scoring/data/`.
