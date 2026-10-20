@@ -127,17 +127,26 @@ jobs:
           docker run --detach --name demo --memory 512m --env PORT=10000
           --publish 10000:10000 complaint-triage-demo:ci
 
-      - name: L'interface répond et la base est prête
+      # La base est préparée dans l'image : le lancement doit prendre quelques secondes, pas
+      # une minute, car l'hébergeur le refait à chaque réveil.
+      - name: L'interface répond vite et la base est prête
         run: |
-          for attempt in $(seq 1 60); do
+          for attempt in $(seq 1 30); do
             if curl --silent --fail http://localhost:10000/_stcore/health | grep -q ok; then
+              echo "Prête après $attempt essais, un par seconde"
               break
             fi
-            sleep 2
+            sleep 1
           done
           docker logs demo 2>&1 | grep "Base de démonstration prête"
           curl --silent --fail http://localhost:10000/_stcore/health | grep -q ok
           docker stats --no-stream demo
+
+      - name: L'administrateur de la base n'est pas joignable par le réseau
+        run: >-
+          docker exec --env PGPASSWORD=essai demo
+          psql --host 127.0.0.1 --username postgres --dbname postgres --command 'SELECT 1'
+          2>&1 | grep "no pg_hba.conf entry"
 
       - name: La démo tourne sans root
         run: test "$(docker exec demo id -u)" != "0"
