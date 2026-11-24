@@ -6,11 +6,13 @@
 
 Complaint triage for retail banking, built on the public data of the US financial regulator (CFPB).
 
+Status: version 1.0 complete, public demo online.
+
 A complaints team usually handles cases in order of arrival, yet about one complaint in seven ends with the customer being compensated. Those are the ones to handle first. The tool scores each complaint on arrival, answers regulation questions with verified citations, and lets an agent act on the queue through a small set of controlled tools. When it lacks information, it refuses and says why.
 
 ## Live demo
 
-**[complaint-triage-zj94.onrender.com](https://complaint-triage-zj94.onrender.com)**, free, no sign-up. It runs on Render's free plan: if nobody has opened it for 15 minutes, the first load takes about 40 seconds. The interface is in French; questions to the assistant and the agent are asked in English.
+**[complaint-triage-zj94.onrender.com](https://complaint-triage-zj94.onrender.com)**, free, no sign-up. It runs on Render's free plan: if nobody has opened it for 15 minutes, the first load can take up to two minutes. The interface is in French; questions to the assistant and the agent are asked in English.
 
 ![The priority queue of a bank in the demo](docs/images/demo-file-prioritaire.png)
 
@@ -42,6 +44,10 @@ Every threshold was set before the work it judges, and every test set was writte
 
 One PDF report and one decision record per version: [framing](docs/pdf/complaint-triage_v0.0_Rapport-de-cadrage.pdf), [data and scoring](docs/pdf/complaint-triage_v0.1_Rapport-donnees-et-scoring.pdf), [RAG](docs/pdf/complaint-triage_v0.2_Rapport-RAG.pdf), [agent](docs/pdf/complaint-triage_v0.3_Rapport-agent.pdf), [quality](docs/pdf/complaint-triage_v0.4_Rapport-qualite.pdf), [industrialisation](docs/pdf/complaint-triage_v0.5_Rapport-industrialisation.pdf), [public demo](docs/pdf/complaint-triage_v1.0_Rapport-demo-publique.pdf). Decision records are in [docs/adr](docs/adr).
 
-## Author
+## Data
 
-Nathan Mang, Data Science and AI engineer (ESIEE Paris, 2026).
+Public data only: the CFPB Consumer Complaint Database, which the CFPB describes as "freely available for anyone to use, analyze, and build on" (it is not a statistical sample of consumers' experiences), the CFPB Narratives Archive, and Regulations E, Z and DD from the eCFR, an unofficial editorial compilation of the CFR. The repository holds aggregates only. This project is independent and is not endorsed by the CFPB.
+
+## Author and licence
+
+Nathan Mang, Data Science and AI engineer (ESIEE Paris, 2026). Code under the [MIT](LICENSE) licence.

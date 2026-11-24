@@ -4,6 +4,14 @@ Les évolutions notables du projet sont notées ici, selon le format [Keep a Cha
 
 ## [Non publié]
 
+### Modifié
+- README réorganisé : état du projet en tête, résultats par version plus courts et dans l'ordre chronologique, versions et rapports dans un seul tableau, commandes de reproduction repliées, licence MIT citée, conditions d'usage des données du CFPB et de l'eCFR, mention d'indépendance. Le journal des étapes de la v0.1 est retiré.
+- README de la démo (généré par `scripts/demo/deploy_demo.py`) : adresse de la démo, ce qu'elle montre, lancement local avec Docker, données et licence.
+- Délai de réveil de la démo annoncé « jusqu'à deux minutes » au lieu d'environ 40 secondes, après un premier chargement mesuré à plus de deux minutes le 24/11/2026.
+
+### Corrigé
+- Le README annonçait 17 scénarios de sûreté en CI : ce sont 16 scénarios, plus un test qui vérifie que la suite contient des attaques et des cas légitimes.
+
 ## [v1.0] - 2026-10-20
 
 Bilan ([ADR 0007](docs/adr/0007-demo-publique-gratuite.md)) : le projet est en ligne, sans aucune dépense, à l'adresse https://complaint-triage-zj94.onrender.com. La démo montre la file prioritaire sur de vraies réclamations publiques, le RAG et l'agent, avec des exemples enregistrés et des questions libres plafonnées. Hugging Face ayant réservé les Spaces Docker aux comptes payants, elle tourne sur l'offre gratuite de Render ; sa base est préparée dans l'image, et un réveil prend 42 secondes.
