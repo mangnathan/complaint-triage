@@ -7,7 +7,7 @@
 
 ## Contexte
 
-Le cadrage prévoyait pour la v0.5 Docker et une chaîne CI/CD complète, puis en v1.0 un déploiement sur Google Cloud Run. Trois éléments ont changé la donne : le poste de développement n'a que 8 Go de mémoire, ce qui rend Docker Desktop pénible ; le projet suit une règle de zéro dépense, alors que Google Cloud exige de lier un moyen de paiement ; et le projet sert de vitrine pour une recherche d'emploi, où le temps passé compte autant que la technique.
+Le cadrage prévoyait pour la v0.5 Docker et une chaîne CI/CD complète, puis en v1.0 un déploiement sur Google Cloud Run. Trois éléments ont changé la donne : le poste de développement n'a que 8 Go de mémoire, ce qui rend Docker Desktop pénible ; le projet suit une règle de zéro dépense, alors que Google Cloud exige de lier un moyen de paiement ; et le temps disponible est limité.
 
 ## Décisions
 
