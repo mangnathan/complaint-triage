@@ -4,6 +4,11 @@ Les évolutions notables du projet sont notées ici, selon le format [Keep a Cha
 
 ## [Non publié]
 
+### Sécurité
+- Mise à jour des dépendances qui avaient des failles connues, dont pillow 13.0 (avec streamlit 1.67 et fastembed 0.9.1, qui l'exigent), certifi, filelock, mlflow, opentelemetry-api, pyasn1 et virtualenv. pip-audit ne trouve plus aucune faille connue, ni dans l'image de la démo ni dans les autres groupes. Les vecteurs du RAG calculés avec fastembed 0.9.1 sont identiques à ceux de 0.9.0.
+- La CI ne garde plus son jeton après le checkout ; un test vérifie les règles des workflows.
+- `SECURITY.md` : signalement privé d'une faille, ce qui est exposé, mesures en place et risques acceptés de la démo (plafonds contournables sans coût, en-têtes que Streamlit ne permet pas d'ajouter).
+
 ### Modifié
 - README réorganisé : état du projet en tête, résultats par version plus courts et dans l'ordre chronologique, versions et rapports dans un seul tableau, commandes de reproduction repliées, licence MIT citée, conditions d'usage des données du CFPB et de l'eCFR, mention d'indépendance. Le journal des étapes de la v0.1 est retiré.
 - README de la démo (généré par `scripts/demo/deploy_demo.py`) : adresse de la démo, ce qu'elle montre, lancement local avec Docker, données et licence.
