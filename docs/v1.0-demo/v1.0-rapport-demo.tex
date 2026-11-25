@@ -20,7 +20,7 @@ La v1.0 met le projet en ligne : une démo publique, gratuite et sans inscriptio
 
 \section{Objectif et choix}
 
-Le projet sert aussi de vitrine : un recruteur doit pouvoir le voir fonctionner en un clic, sans rien installer. La v1.0 a donc un objectif simple : une démo publique, qui montre les trois briques du projet, sur un hébergement gratuit et sans moyen de paiement, pour respecter la règle de zéro dépense.
+Le projet sert aussi de vitrine : un visiteur doit pouvoir le voir fonctionner en un clic, sans rien installer. La v1.0 a donc un objectif simple : une démo publique, qui montre les trois briques du projet, sur un hébergement gratuit et sans moyen de paiement, pour respecter la règle de zéro dépense.
 
 \begin{table}[H]
 \centering\small
@@ -53,7 +53,7 @@ Les exemples sont produits par un script qui relit les réponses dans le cache a
 \newpage
 \section{Le réveil de la démo}
 
-L'offre gratuite endort la démo après 15~minutes sans visite. Le premier visiteur attend alors le réveil de l'hébergeur, puis le lancement de l'application. Dans la première version, ce lancement créait la base et rechargeait les 30\,339 réclamations, ligne par ligne, sur un processeur partagé. Le premier réveil mesuré a pris plus de deux minutes et demie, de quoi perdre un recruteur.
+L'offre gratuite endort la démo après 15~minutes sans visite. Le premier visiteur attend alors le réveil de l'hébergeur, puis le lancement de l'application. Dans la première version, ce lancement créait la base et rechargeait les 30\,339 réclamations, ligne par ligne, sur un processeur partagé. Le premier réveil mesuré a pris plus de deux minutes et demie, de quoi perdre ce visiteur.
 
 Le système de fichiers d'un conteneur repart de l'image à chaque lancement. Préparer la base à la construction de l'image ne change donc rien à son comportement : elle est toujours remise à zéro. Le lancement se réduit à démarrer PostgreSQL et à donner aux comptes des mots de passe neufs.
 
