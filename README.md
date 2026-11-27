@@ -26,7 +26,7 @@ Le projet est pensé pour fonctionner en continu, pas comme une étude ponctuell
 
 ![L'agent répond à une question de réglementation en passant par l'outil prévu](docs/images/demo-agent.png)
 
-Les exemples enregistrés ne coûtent aucun appel. Les questions libres passent par une clé Gemini sans facturation, plafonnées à 5 par visite et 100 par jour. Le dépôt [complaint-triage-demo](https://github.com/mangnathan/complaint-triage-demo) contient l'image publiée.
+Les exemples enregistrés ne coûtent aucun appel. La démo ne pose pas de question en direct au modèle : les conditions de l'API Gemini réservent aux services payants les applications ouvertes à des visiteurs en Europe, et le projet ne dépense rien ([ADR 0008](docs/adr/0008-demo-sans-mode-direct.md)). Le dépôt [complaint-triage-demo](https://github.com/mangnathan/complaint-triage-demo) contient l'image publiée.
 
 ## En bref
 

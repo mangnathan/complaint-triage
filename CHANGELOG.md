@@ -14,6 +14,7 @@ Les évolutions notables du projet sont notées ici, selon le format [Keep a Cha
 - README de la démo (généré par `scripts/demo/deploy_demo.py`) : adresse de la démo, ce qu'elle montre, lancement local avec Docker, données et licence.
 - Délai de réveil de la démo annoncé « jusqu'à deux minutes » au lieu d'environ 40 secondes, après un premier chargement mesuré à plus de deux minutes le 24/11/2026.
 - Rapport de la v1.0 et contexte de l'ADR 0006 : vocabulaire simplifié, sans changement de fond.
+- Démo publique sans questions libres : la clé Gemini est retirée de l'hébergeur, car les conditions de l'API Gemini réservent aux services payants les applications ouvertes à des visiteurs en Europe ([ADR 0008](docs/adr/0008-demo-sans-mode-direct.md)). Les exemples enregistrés restent disponibles, et le code garde le mode en direct pour un usage sur son propre poste. README, résumé en anglais, `SECURITY.md` (le risque des plafonds contournables disparaît) et README du dépôt de déploiement mis à jour.
 
 ### Corrigé
 - Le README annonçait 17 scénarios de sûreté en CI : ce sont 16 scénarios, plus un test qui vérifie que la suite contient des attaques et des cas légitimes.
