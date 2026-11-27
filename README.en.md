@@ -20,7 +20,7 @@ A complaints team usually handles cases in order of arrival, yet about one compl
 - **Regulations**: a question in English, an answer that quotes the official text, each quote checked by code against the source; otherwise, a refusal.
 - **Agent**: a plain-language request. The agent announces its plan, calls controlled tools, then answers or refuses. Its writes only touch fictitious banks, reset at every restart.
 
-Recorded examples cost nothing. Live questions go through a Gemini key with no billing attached, capped at 5 per visit and 100 per day.
+Recorded examples cost nothing. The demo does not send live questions to the model: the Gemini API terms allow only paid services when an application is made available to users in Europe, and the project spends nothing (ADR 0008, in French).
 
 ## Results
 
