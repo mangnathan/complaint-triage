@@ -1,6 +1,6 @@
 # ADR 0007 : une démo publique gratuite, sur Render, avec sa base dans l'image
 
-- Statut : accepté
+- Statut : accepté ; les questions libres sont remplacées par l'[ADR 0008](0008-demo-sans-mode-direct.md)
 - Date : 20 octobre 2026
 - Version : v1.0
 - Rapport détaillé : [complaint-triage_v1.0_Rapport-demo-publique.pdf](../pdf/complaint-triage_v1.0_Rapport-demo-publique.pdf)
